@@ -1,7 +1,15 @@
 import { createServer } from "http";
 import { readFileSync } from "fs";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { URL } from "url";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import {
+    CallToolRequestSchema,
+    ListResourceTemplatesRequestSchema,
+    ListResourcesRequestSchema,
+    ListToolsRequestSchema,
+    ReadResourceRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
 // Mock data - 2 properties in São Paulo, Brazil
@@ -39,71 +47,157 @@ const MOCK_PROPERTIES = [
 // Load widget HTML
 const widgetHtml = readFileSync("public/widget.html", "utf8");
 
+// Template configuration
+const TEMPLATE_URI = "ui://widget/real-estate.html";
+const MIME_TYPE = "text/html+skybridge";
+
 // Input schemas
 const searchPropertiesSchema = {
-    filter: z.enum(["all", "casa", "apartamento"]).optional()
+    type: "object",
+    properties: {
+        filter: {
+            type: "string",
+            enum: ["all", "casa", "apartamento"],
+            description: "Filter by property type"
+        }
+    },
+    additionalProperties: false
 };
 
 const filterByPriceSchema = {
-    maxPrice: z.number().positive()
+    type: "object",
+    properties: {
+        maxPrice: {
+            type: "number",
+            description: "Maximum price in BRL"
+        }
+    },
+    required: ["maxPrice"],
+    additionalProperties: false
 };
 
-// Helper function to return properties with structured content
-const replyWithProperties = (properties, message) => ({
-    content: message ? [{ type: "text", text: message }] : [],
-    structuredContent: { properties }
+// Zod parsers
+const searchParser = z.object({
+    filter: z.enum(["all", "casa", "apartamento"]).optional()
 });
 
-// Create MCP server
-function createRealEstateServer() {
-    const server = new McpServer({
-        name: "real-estate-map",
-        version: "1.0.0"
-    });
+const priceParser = z.object({
+    maxPrice: z.number().positive()
+});
 
-    // Register widget resource
-    server.registerResource(
-        "real-estate-widget",
-        "ui://widget/real-estate.html",
-        {},
-        async () => ({
-            contents: [
-                {
-                    uri: "ui://widget/real-estate.html",
-                    mimeType: "text/html+skybridge",
-                    text: widgetHtml,
-                    _meta: {
-                        "openai/widgetPrefersBorder": true,
-                        "openai/widgetDescription": "Interactive map showing real estate properties",
-                        "openai/widgetCSP": {
-                            connect_domains: ["https://unpkg.com"],
-                            resource_domains: ["https://unpkg.com", "https://*.openstreetmap.org"]
-                        }
-                    }
-                }
-            ]
-        })
+// Tool metadata
+function toolDescriptorMeta() {
+    return {
+        "openai/outputTemplate": TEMPLATE_URI,
+        "openai/toolInvocation/invoking": "Searching properties...",
+        "openai/toolInvocation/invoked": "Properties found",
+        "openai/widgetAccessible": true
+    };
+}
+
+// Tools definitions
+const tools = [
+    {
+        name: "search_properties",
+        title: "Search Properties",
+        description: "Search for real estate properties. Can filter by type (casa or apartamento).",
+        inputSchema: searchPropertiesSchema,
+        _meta: toolDescriptorMeta(),
+        annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            openWorldHint: false
+        }
+    },
+    {
+        name: "filter_by_price",
+        title: "Filter by Price",
+        description: "Filter properties by maximum price in BRL.",
+        inputSchema: filterByPriceSchema,
+        _meta: toolDescriptorMeta(),
+        annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            openWorldHint: false
+        }
+    }
+];
+
+// Resources
+const resources = [
+    {
+        uri: TEMPLATE_URI,
+        name: "Real Estate Widget",
+        description: "Interactive property map widget",
+        mimeType: MIME_TYPE,
+        _meta: toolDescriptorMeta()
+    }
+];
+
+const resourceTemplates = [
+    {
+        uriTemplate: TEMPLATE_URI,
+        name: "Real Estate Widget Template",
+        description: "Interactive property map widget",
+        mimeType: MIME_TYPE,
+        _meta: toolDescriptorMeta()
+    }
+];
+
+// Create MCP Server
+function createRealEstateServer() {
+    const server = new Server(
+        {
+            name: "real-estate-map",
+            version: "1.0.0"
+        },
+        {
+            capabilities: {
+                resources: {},
+                tools: {}
+            }
+        }
     );
 
-    // Tool 1: Search properties
-    server.registerTool(
-        "search_properties",
-        {
-            title: "Search Properties",
-            description: "Search for real estate properties. Can filter by type (casa or apartamento).",
-            inputSchema: searchPropertiesSchema,
-            _meta: {
-                "openai/outputTemplate": "ui://widget/real-estate.html",
-                "openai/toolInvocation/invoking": "Searching properties...",
-                "openai/toolInvocation/invoked": "Properties found",
-                "openai/widgetAccessible": true
-            },
-            annotations: {
-                readOnlyHint: true
-            }
-        },
-        async (args) => {
-            const filter = args?.filter || "all";
+    // List resources
+    server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+        resources
+    }));
+
+    // Read resource
+    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+        if (request.params.uri === TEMPLATE_URI) {
+            return {
+                contents: [
+                    {
+                        uri: TEMPLATE_URI,
+                        mimeType: MIME_TYPE,
+                        text: widgetHtml,
+                        _meta: toolDescriptorMeta()
+                    }
+                ]
+            };
+        }
+        throw new Error(`Unknown resource: ${request.params.uri}`);
+    });
+
+    // List resource templates
+    server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+        resourceTemplates
+    }));
+
+    // List tools
+    server.setRequestHandler(ListToolsRequestSchema, async () => ({
+        tools
+    }));
+
+    // Handle tool calls
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+        const { name, arguments: args } = request.params;
+
+        if (name === "search_properties") {
+            const parsed = searchParser.parse(args ?? {});
+            const filter = parsed.filter || "all";
 
             let properties = MOCK_PROPERTIES;
             if (filter !== "all") {
@@ -114,46 +208,102 @@ function createRealEstateServer() {
                 ? `Found ${properties.length} properties`
                 : `Found ${properties.length} ${filter}(s)`;
 
-            return replyWithProperties(properties, message);
+            return {
+                content: [{ type: "text", text: message }],
+                structuredContent: { properties },
+                _meta: toolDescriptorMeta()
+            };
         }
-    );
 
-    // Tool 2: Filter by price
-    server.registerTool(
-        "filter_by_price",
-        {
-            title: "Filter by Price",
-            description: "Filter properties by maximum price in BRL.",
-            inputSchema: filterByPriceSchema,
-            _meta: {
-                "openai/outputTemplate": "ui://widget/real-estate.html",
-                "openai/toolInvocation/invoking": "Filtering by price...",
-                "openai/toolInvocation/invoked": "Filtered properties",
-                "openai/widgetAccessible": true
-            },
-            annotations: {
-                readOnlyHint: true
-            }
-        },
-        async (args) => {
-            const maxPrice = args?.maxPrice;
-            if (!maxPrice) {
-                return replyWithProperties(MOCK_PROPERTIES, "Please provide a maximum price.");
-            }
+        if (name === "filter_by_price") {
+            const parsed = priceParser.parse(args ?? {});
+            const { maxPrice } = parsed;
 
             const properties = MOCK_PROPERTIES.filter(p => p.price <= maxPrice);
             const message = `Found ${properties.length} properties under R$ ${maxPrice.toLocaleString('pt-BR')}`;
 
-            return replyWithProperties(properties, message);
+            return {
+                content: [{ type: "text", text: message }],
+                structuredContent: { properties },
+                _meta: toolDescriptorMeta()
+            };
         }
-    );
+
+        throw new Error(`Unknown tool: ${name}`);
+    });
 
     return server;
 }
 
+// Session management
+const sessions = new Map();
+
+// Paths
+const ssePath = "/mcp";
+const postPath = "/mcp/messages";
+
+// Handle SSE connection
+async function handleSseRequest(res) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+
+    const server = createRealEstateServer();
+    const transport = new SSEServerTransport(postPath, res);
+    const sessionId = transport.sessionId;
+
+    sessions.set(sessionId, { server, transport });
+
+    transport.onclose = async () => {
+        sessions.delete(sessionId);
+        await server.close();
+    };
+
+    transport.onerror = (error) => {
+        console.error("SSE transport error:", error);
+    };
+
+    try {
+        await server.connect(transport);
+    } catch (error) {
+        sessions.delete(sessionId);
+        console.error("Failed to start SSE session:", error);
+        if (!res.headersSent) {
+            res.writeHead(500).end("Failed to establish SSE connection");
+        }
+    }
+}
+
+// Handle POST messages
+async function handlePostMessage(req, res, url) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "content-type");
+
+    const sessionId = url.searchParams.get("sessionId");
+
+    if (!sessionId) {
+        res.writeHead(400).end("Missing sessionId query parameter");
+        return;
+    }
+
+    const session = sessions.get(sessionId);
+
+    if (!session) {
+        res.writeHead(404).end("Unknown session");
+        return;
+    }
+
+    try {
+        await session.transport.handlePostMessage(req, res);
+    } catch (error) {
+        console.error("Failed to process message:", error);
+        if (!res.headersSent) {
+            res.writeHead(500).end("Failed to process message");
+        }
+    }
+}
+
 // Server setup
-const port = Number(process.env.PORT ?? 8787);
-const MCP_PATH = "/mcp";
+const portEnv = Number(process.env.PORT ?? 8787);
+const port = Number.isFinite(portEnv) ? portEnv : 8787;
 
 const httpServer = createServer(async (req, res) => {
     if (!req.url) {
@@ -164,14 +314,28 @@ const httpServer = createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
 
     // CORS preflight
-    if (req.method === "OPTIONS" && url.pathname === MCP_PATH) {
+    if (
+        req.method === "OPTIONS" &&
+        (url.pathname === ssePath || url.pathname === postPath)
+    ) {
         res.writeHead(204, {
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, GET, OPTIONS, DELETE",
-            "Access-Control-Allow-Headers": "content-type, mcp-session-id",
-            "Access-Control-Expose-Headers": "Mcp-Session-Id"
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "content-type"
         });
         res.end();
+        return;
+    }
+
+    // SSE endpoint
+    if (req.method === "GET" && url.pathname === ssePath) {
+        await handleSseRequest(res);
+        return;
+    }
+
+    // POST messages endpoint
+    if (req.method === "POST" && url.pathname === postPath) {
+        await handlePostMessage(req, res, url);
         return;
     }
 
@@ -182,38 +346,16 @@ const httpServer = createServer(async (req, res) => {
         return;
     }
 
-    // MCP endpoint
-    const MCP_METHODS = new Set(["POST", "GET", "DELETE"]);
-    if (url.pathname === MCP_PATH && req.method && MCP_METHODS.has(req.method)) {
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
-
-        const server = createRealEstateServer();
-        const transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: undefined, // stateless mode
-            enableJsonResponse: true
-        });
-
-        res.on("close", () => {
-            transport.close();
-            server.close();
-        });
-
-        try {
-            await server.connect(transport);
-            await transport.handleRequest(req, res);
-        } catch (error) {
-            console.error("Error handling MCP request:", error);
-            if (!res.headersSent) {
-                res.writeHead(500).end("Internal server error");
-            }
-        }
-        return;
-    }
-
     res.writeHead(404).end("Not Found");
 });
 
+httpServer.on("clientError", (err, socket) => {
+    console.error("HTTP client error:", err);
+    socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
+});
+
 httpServer.listen(port, () => {
-    console.log(`Real Estate Map MCP server listening on http://localhost:${port}${MCP_PATH}`);
+    console.log(`Real Estate Map MCP server listening on http://localhost:${port}`);
+    console.log(`  SSE stream: GET http://localhost:${port}${ssePath}`);
+    console.log(`  Message post: POST http://localhost:${port}${postPath}?sessionId=...`);
 });
