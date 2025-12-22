@@ -403,38 +403,46 @@ const httpServer = createServer(
             return;
         }
 
-        // Serve static images
-        if (req.method === "GET" && url.pathname.startsWith("/images/")) {
-            try {
-                // Images are in project_root/public/images/
-                // Remove leading / from pathname for proper join
-                const relativePath = url.pathname.slice(1); // "/images/x.jpg" -> "images/x.jpg"
-                const imagePath = join(process.cwd(), "public", relativePath);
+        // Serve static files (images, JS, CSS)
+        if (req.method === "GET" && url.pathname.startsWith("/")) {
+            // Skip MCP endpoints
+            if (url.pathname === ssePath || url.pathname === postPath || url.pathname === "/") {
+                // Continue to next handler
+            } else {
+                try {
+                    // Try to serve from public directory
+                    const relativePath = url.pathname.slice(1); // Remove leading /
+                    const filePath = join(process.cwd(), "public", relativePath);
 
-                logger.debug("Serving image:", imagePath);
+                    logger.debug("Serving static file:", filePath);
 
-                const ext = extname(imagePath).toLowerCase();
-                const mimeTypes: { [key: string]: string } = {
-                    ".jpg": "image/jpeg",
-                    ".jpeg": "image/jpeg",
-                    ".png": "image/png",
-                    ".gif": "image/gif",
-                    ".webp": "image/webp",
-                };
-                const contentType = mimeTypes[ext] || "application/octet-stream";
+                    const ext = extname(filePath).toLowerCase();
+                    const mimeTypes: { [key: string]: string } = {
+                        ".html": "text/html",
+                        ".js": "text/javascript", // Important for ES6 modules!
+                        ".mjs": "text/javascript",
+                        ".css": "text/css",
+                        ".json": "application/json",
+                        ".jpg": "image/jpeg",
+                        ".jpeg": "image/jpeg",
+                        ".png": "image/png",
+                        ".gif": "image/gif",
+                        ".webp": "image/webp",
+                        ".svg": "image/svg+xml",
+                    };
+                    const contentType = mimeTypes[ext] || "application/octet-stream";
 
-                const imageData = readFileSync(imagePath);
-                res.writeHead(200, {
-                    "Content-Type": contentType,
-                    "Access-Control-Allow-Origin": "*",
-                    "Cache-Control": "public, max-age=86400", // 24h cache
-                });
-                res.end(imageData);
-                return;
-            } catch (error) {
-                logger.error("Error serving image:", error);
-                res.writeHead(404).end("Image not found");
-                return;
+                    const fileData = readFileSync(filePath);
+                    res.writeHead(200, {
+                        "Content-Type": contentType,
+                        "Access-Control-Allow-Origin": "*",
+                        "Cache-Control": "public, max-age=86400", // 24h cache
+                    });
+                    res.end(fileData);
+                    return;
+                } catch (error) {
+                    // File not found, continue to 404
+                }
             }
         }
 
