@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Real Estate Map</title>
-  
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  
+
   <style>
     :root {
       --primary-color: #2563eb;
@@ -25,7 +23,8 @@
       box-sizing: border-box;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       padding: 0;
       width: 100%;
@@ -69,7 +68,7 @@
     .property-card {
       background: var(--bg-card);
       border-radius: 12px;
-      padding: 16px;
+      overflow: hidden;
       box-shadow: var(--shadow);
       cursor: pointer;
       transition: all 0.2s ease;
@@ -77,15 +76,20 @@
     }
 
     .property-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
       border-color: var(--primary-color);
     }
 
-    .property-icon {
-      font-size: 3rem;
-      margin-bottom: 8px;
-      display: block;
+    .property-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      background: #e5e7eb;
+    }
+
+    .property-content {
+      padding: 16px;
     }
 
     .property-title {
@@ -131,17 +135,31 @@
       font-size: 1rem;
     }
 
-    /* Custom Leaflet marker styles */
+    /* Custom Google Maps marker styles */
     .price-marker {
       background: var(--price-color);
       color: white;
-      padding: 4px 8px;
+      padding: 6px 12px;
       border-radius: 6px;
       font-weight: 700;
       font-size: 0.875rem;
       white-space: nowrap;
       box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
       border: 2px solid white;
+      position: relative;
+    }
+
+    .price-marker::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid var(--price-color);
     }
 
     /* Loading state */
@@ -152,79 +170,129 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <h2>🏠 Imóveis Disponíveis</h2>
-    
+
     <!-- Map container -->
     <div id="map"></div>
-    
+
     <!-- Properties grid -->
     <div id="properties-container" class="loading">
       Carregando imóveis...
     </div>
   </div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
-  <script type="module">
-    // Get properties from window.openai
-    let properties = window.openai?.toolOutput?.properties ?? [];
-    
-    // Initialize map centered on São Paulo
-    const map = L.map('map').setView([-23.5505, -46.6333], 12);
-    
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19
-    }).addTo(map);
+  <script>
+    // Global variable to store map reference
+    let map;
+    let markers = {};
+    let infoWindows = {};
 
-    // Custom icon for property markers
-    function createPriceMarker(price) {
-      const priceFormatted = `R$ ${Math.round(price / 1000)}k`;
-      return L.divIcon({
-        className: 'custom-marker',
-        html: `<div class="price-marker">${priceFormatted}</div>`,
-        iconSize: [60, 30],
-        iconAnchor: [30, 30]
+    // Initialize Google Maps
+    function initMap() {
+      // Get properties from window.openai
+      let properties = window.openai?.toolOutput?.properties ?? [];
+
+      // Create map centered on São Paulo
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: -23.5505, lng: -46.6333 },
+        zoom: 12,
+        mapTypeId: 'roadmap',
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          }
+        ]
       });
+
+      // Add markers and setup interactivity
+      addMarkers(properties);
+      renderProperties(properties);
     }
 
-    // Store markers for later access
-    const markers = {};
+    function addMarkers(properties) {
+      // Clear existing markers
+      Object.values(markers).forEach(marker => marker.setMap(null));
+      Object.values(infoWindows).forEach(infoWindow => infoWindow.close());
+      markers = {};
+      infoWindows = {};
 
-    // Add markers to map
-    properties.forEach(property => {
-      const marker = L.marker([property.lat, property.lng], {
-        icon: createPriceMarker(property.price)
-      }).addTo(map);
+      if (properties.length === 0) return;
 
-      // Popup with property info
-      marker.bindPopup(`
-        <div style="text-align: center;">
-          <div style="font-size: 2rem;">${property.image}</div>
-          <strong>${property.title}</strong><br/>
-          <span style="color: #dc2626; font-weight: 700;">
-            R$ ${property.price.toLocaleString('pt-BR')}
-          </span>
-        </div>
-      `);
+      const bounds = new google.maps.LatLngBounds();
 
-      markers[property.id] = marker;
-    });
+      properties.forEach(property => {
+        // Create custom marker with price
+        const priceFormatted = `R$ ${Math.round(property.price / 1000)}k`;
 
-    // Fit map to show all markers
-    if (properties.length > 0) {
-      const bounds = L.latLngBounds(properties.map(p => [p.lat, p.lng]));
-      map.fitBounds(bounds, { padding: [50, 50] });
+        const marker = new google.maps.Marker({
+          position: { lat: property.lat, lng: property.lng },
+          map: map,
+          title: property.title,
+          label: {
+            text: priceFormatted,
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          },
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 0,
+            fillColor: '#dc2626',
+            fillOpacity: 1,
+            strokeColor: 'white',
+            strokeWeight: 2
+          }
+        });
+
+        // Create info window with property details
+        const imageTag = property.image.startsWith('http') || property.image.startsWith('/')
+          ? `<img src="${property.image}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" onerror="this.style.display='none'" />`
+          : `<div style="font-size: 3rem; margin-bottom: 8px;">${property.image}</div>`;
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div style="text-align: center; padding: 8px; max-width: 200px;">
+              ${imageTag}
+              <div><strong>${property.title}</strong></div>
+              <div style="color: #dc2626; font-weight: 700; font-size: 1.125rem; margin-top: 4px;">
+                R$ ${property.price.toLocaleString('pt-BR')}
+              </div>
+              <div style="color: #6c768a; font-size: 0.875rem; margin-top: 4px;">
+                ${property.bedrooms} quartos • ${property.bathrooms} banheiros • ${property.area}m²
+              </div>
+            </div>
+          `
+        });
+
+        marker.addListener('click', () => {
+          // Close all other info windows
+          Object.values(infoWindows).forEach(iw => iw.close());
+          infoWindow.open(map, marker);
+        });
+
+        markers[property.id] = marker;
+        infoWindows[property.id] = infoWindow;
+        bounds.extend({ lat: property.lat, lng: property.lng });
+      });
+
+      // Fit map to show all markers
+      if (properties.length > 0) {
+        map.fitBounds(bounds);
+        if (properties.length === 1) {
+          map.setZoom(15);
+        }
+      }
     }
 
     // Render property cards
-    function renderProperties() {
+    function renderProperties(properties) {
       const container = document.getElementById('properties-container');
-      
+
       if (properties.length === 0) {
         container.className = 'no-properties';
         container.innerHTML = 'Nenhum imóvel encontrado.';
@@ -232,19 +300,27 @@
       }
 
       container.className = 'properties-grid';
-      container.innerHTML = properties.map(property => `
-        <div class="property-card" data-id="${property.id}">
-          <span class="property-icon">${property.image}</span>
-          <h3 class="property-title">${property.title}</h3>
-          <div class="property-price">R$ ${property.price.toLocaleString('pt-BR')}</div>
-          <p class="property-address">${property.address}</p>
-          <div class="property-details">
-            <div class="property-detail">🛏️ ${property.bedrooms} quartos</div>
-            <div class="property-detail">🚿 ${property.bathrooms} banheiros</div>
-            <div class="property-detail">📏 ${property.area}m²</div>
+      container.innerHTML = properties.map(property => {
+        const imageTag = property.image.startsWith('http') || property.image.startsWith('/')
+          ? `<img src="${property.image}" alt="${property.title}" class="property-image" onerror="this.style.display='none'" />`
+          : `<div class="property-image" style="display: flex; align-items: center; justify-content: center; font-size: 4rem;">${property.image}</div>`;
+
+        return `
+          <div class="property-card" data-id="${property.id}">
+            ${imageTag}
+            <div class="property-content">
+              <h3 class="property-title">${property.title}</h3>
+              <div class="property-price">R$ ${property.price.toLocaleString('pt-BR')}</div>
+              <p class="property-address">${property.address}</p>
+              <div class="property-details">
+                <div class="property-detail">🛏️ ${property.bedrooms} quartos</div>
+                <div class="property-detail">🚿 ${property.bathrooms} banheiros</div>
+                <div class="property-detail">📏 ${property.area}m²</div>
+              </div>
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       // Add click handlers to cards
       container.querySelectorAll('.property-card').forEach(card => {
@@ -252,11 +328,15 @@
           const propertyId = card.dataset.id;
           const property = properties.find(p => p.id === propertyId);
           const marker = markers[propertyId];
-          
-          if (property && marker) {
-            // Center map on property and open popup
-            map.setView([property.lat, property.lng], 15);
-            marker.openPopup();
+          const infoWindow = infoWindows[propertyId];
+
+          if (property && marker && infoWindow) {
+            // Close all info windows
+            Object.values(infoWindows).forEach(iw => iw.close());
+            // Center map on property and open info window
+            map.panTo({ lat: property.lat, lng: property.lng });
+            map.setZoom(15);
+            infoWindow.open(map, marker);
           }
         });
       });
@@ -266,38 +346,9 @@
     const handleSetGlobals = (event) => {
       const globals = event.detail?.globals;
       if (globals?.toolOutput?.properties) {
-        properties = globals.toolOutput.properties;
-        
-        // Clear existing markers
-        Object.values(markers).forEach(marker => marker.remove());
-        Object.keys(markers).forEach(key => delete markers[key]);
-        
-        // Re-add markers
-        properties.forEach(property => {
-          const marker = L.marker([property.lat, property.lng], {
-            icon: createPriceMarker(property.price)
-          }).addTo(map);
-
-          marker.bindPopup(`
-            <div style="text-align: center;">
-              <div style="font-size: 2rem;">${property.image}</div>
-              <strong>${property.title}</strong><br/>
-              <span style="color: #dc2626; font-weight: 700;">
-                R$ ${property.price.toLocaleString('pt-BR')}
-              </span>
-            </div>
-          `);
-
-          markers[property.id] = marker;
-        });
-
-        // Fit bounds
-        if (properties.length > 0) {
-          const bounds = L.latLngBounds(properties.map(p => [p.lat, p.lng]));
-          map.fitBounds(bounds, { padding: [50, 50] });
-        }
-        
-        renderProperties();
+        const properties = globals.toolOutput.properties;
+        addMarkers(properties);
+        renderProperties(properties);
       }
     };
 
@@ -305,8 +356,18 @@
       passive: true
     });
 
-    // Initial render
-    renderProperties();
+    // Initialize when properties are available
+    if (window.openai?.toolOutput?.properties) {
+      // Wait for Google Maps to load
+      if (typeof google !== 'undefined') {
+        initMap();
+      }
+    }
   </script>
+
+  <!-- Google Maps JavaScript API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDKaT7hbQoYKh1E6PLqzou_4fYgM0-7Jns&callback=initMap"
+    async defer></script>
 </body>
+
 </html>

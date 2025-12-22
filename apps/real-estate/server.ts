@@ -167,6 +167,20 @@ function toolDescriptorMeta() {
         "openai/toolInvocation/invoking": "Searching properties...",
         "openai/toolInvocation/invoked": "Properties found",
         "openai/widgetAccessible": true,
+        "openai/widgetCSP": {
+            connect_domains: [
+                "https://maps.googleapis.com",
+                "https://maps.gstatic.com",
+            ],
+            resource_domains: [
+                "https://maps.googleapis.com",
+                "https://maps.gstatic.com",
+                "https://*.googleapis.com",
+                "https://*.gstatic.com",
+            ],
+            script_domains: ["https://maps.googleapis.com"],
+        },
+        "openai/widgetDomain": "https://chatgpt.com",
     } as const;
 }
 
