@@ -62,12 +62,15 @@ const searchPropertiesSchema = {
 const filterByPriceSchema = {
     type: "object" as const,
     properties: {
+        minPrice: {
+            type: "number" as const,
+            description: "Minimum price in BRL (optional)",
+        },
         maxPrice: {
             type: "number" as const,
-            description: "Maximum price in BRL",
+            description: "Maximum price in BRL (optional)",
         },
     },
-    required: ["maxPrice"],
     additionalProperties: false,
 };
 
@@ -77,8 +80,12 @@ const searchParser = z.object({
 });
 
 const priceParser = z.object({
-    maxPrice: z.number().positive(),
-});
+    minPrice: z.number().positive().optional(),
+    maxPrice: z.number().positive().optional(),
+}).refine(
+    (data) => data.minPrice !== undefined || data.maxPrice !== undefined,
+    { message: "At least one of minPrice or maxPrice must be provided" }
+);
 
 // Tool metadata
 function toolDescriptorMeta() {
@@ -114,7 +121,7 @@ const tools: Tool[] = [
     {
         name: "filter_by_price",
         title: "Filter by Price",
-        description: "Filter properties by maximum price in BRL.",
+        description: "Filter properties by price range in BRL. Supports minPrice (properties above), maxPrice (properties below), or both for a range.",
         inputSchema: filterByPriceSchema,
         _meta: toolDescriptorMeta(),
         annotations: {
@@ -234,10 +241,37 @@ function createRealEstateServer(): Server {
 
             if (name === "filter_by_price") {
                 const parsed = priceParser.parse(args ?? {});
-                const { maxPrice } = parsed;
+                const { minPrice, maxPrice } = parsed;
 
-                const properties = PROPERTIES.filter((p: Property) => p.price <= maxPrice);
-                const message = `Found ${properties.length} properties under ${formatPrice(maxPrice)}`;
+                // Filter properties by price range
+                let properties = PROPERTIES;
+
+                if (minPrice !== undefined && maxPrice !== undefined) {
+                    // Both min and max provided - range filter
+                    properties = PROPERTIES.filter(
+                        (p: Property) => p.price >= minPrice && p.price <= maxPrice
+                    );
+                } else if (minPrice !== undefined) {
+                    // Only min provided - properties above price
+                    properties = PROPERTIES.filter(
+                        (p: Property) => p.price >= minPrice
+                    );
+                } else if (maxPrice !== undefined) {
+                    // Only max provided - properties below price
+                    properties = PROPERTIES.filter(
+                        (p: Property) => p.price <= maxPrice
+                    );
+                }
+
+                // Build descriptive message
+                let message = "";
+                if (minPrice !== undefined && maxPrice !== undefined) {
+                    message = `Found ${properties.length} properties between ${formatPrice(minPrice)} and ${formatPrice(maxPrice)}`;
+                } else if (minPrice !== undefined) {
+                    message = `Found ${properties.length} properties above ${formatPrice(minPrice)}`;
+                } else if (maxPrice !== undefined) {
+                    message = `Found ${properties.length} properties under ${formatPrice(maxPrice)}`;
+                }
 
                 return {
                     content: [{ type: "text", text: message }],
