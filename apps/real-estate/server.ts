@@ -120,8 +120,8 @@ const tools: Tool[] = [
     },
     {
         name: "filter_by_price",
-        title: "Filter by Price",
-        description: "Filter properties by price range in BRL. Supports minPrice (properties above), maxPrice (properties below), or both for a range.",
+        title: "Filter by Price Range",
+        description: "Filter properties by price in BRL. Examples: minPrice=1000000 (properties above 1 million), maxPrice=1500000 (properties below 1.5 million), or both for a range. Use this when user asks 'acima de', 'até', 'entre X e Y'.",
         inputSchema: filterByPriceSchema,
         _meta: toolDescriptorMeta(),
         annotations: {
@@ -368,6 +368,8 @@ const httpServer = createServer(
         }
 
         const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
+
+        logger.info(`Incoming request: ${req.method} ${url.pathname} (Full: ${req.url})`); // Debug log
 
         // CORS preflight
         if (
