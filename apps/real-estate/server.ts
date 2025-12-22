@@ -314,24 +314,8 @@ function createRealEstateServer(): Server {
                         ? `Found ${properties.length} properties`
                         : `Found ${properties.length} ${filter}(s)`;
 
-                // Build content array with images
-                const contentItems: any[] = [{ type: "text", text: message }];
-
-                // Add each property with image
-                properties.forEach((p) => {
-                    contentItems.push({
-                        type: "image",
-                        data: p.image,
-                        mimeType: p.image.endsWith('.png') ? "image/png" : "image/jpeg",
-                    });
-                    contentItems.push({
-                        type: "text",
-                        text: `**${p.title}** - R$ ${p.price.toLocaleString('pt-BR')}\n${p.description}`,
-                    });
-                });
-
                 return {
-                    content: contentItems,
+                    content: [{ type: "text", text: message }],
                     structuredContent: { properties },
                     _meta: toolDescriptorMeta(),
                 };
@@ -344,24 +328,8 @@ function createRealEstateServer(): Server {
                 const properties = MOCK_PROPERTIES.filter((p) => p.price <= maxPrice);
                 const message = `Found ${properties.length} properties under R$ ${maxPrice.toLocaleString("pt-BR")}`;
 
-                // Build content array with images
-                const contentItems: any[] = [{ type: "text", text: message }];
-
-                // Add each property with image
-                properties.forEach((p) => {
-                    contentItems.push({
-                        type: "image",
-                        data: p.image,
-                        mimeType: p.image.endsWith('.png') ? "image/png" : "image/jpeg",
-                    });
-                    contentItems.push({
-                        type: "text",
-                        text: `**${p.title}** - R$ ${p.price.toLocaleString('pt-BR')}\n${p.bedrooms} quartos • ${p.bathrooms} banheiros • ${p.area}m²`,
-                    });
-                });
-
                 return {
-                    content: contentItems,
+                    content: [{ type: "text", text: message }],
                     structuredContent: { properties },
                     _meta: toolDescriptorMeta(),
                 };
