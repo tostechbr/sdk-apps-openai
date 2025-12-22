@@ -59,7 +59,7 @@ const MOCK_PROPERTIES: Property[] = [
         area: 145,
         lat: -23.5669,
         lng: -46.6725,
-        image: "/images/prop-001.png",
+        image: "https://sdk-apps-openai-production.up.railway.app/images/prop-001.png",
         description: "Apartamento de alto padrão com acabamento premium, vista panorâmica e sacada gourmet. Condomínio completo com piscina, academia, salão de festas e segurança 24h.",
     },
     {
@@ -73,7 +73,7 @@ const MOCK_PROPERTIES: Property[] = [
         area: 220,
         lat: -23.5615,
         lng: -46.6893,
-        image: "/images/prop-002.jpg",
+        image: "https://sdk-apps-openai-production.up.railway.app/images/prop-002.jpg",
         description: "Casa reformada com arquitetura contemporânea, jardim com deck, churrasqueira e piscina aquecida. Localização privilegiada perto do metrô Fradique Coutinho.",
     },
     {
@@ -87,7 +87,7 @@ const MOCK_PROPERTIES: Property[] = [
         area: 75,
         lat: -23.5483,
         lng: -46.6925,
-        image: "/images/prop-003.png",
+        image: "https://sdk-apps-openai-production.up.railway.app/images/prop-003.png",
         description: "Apartamento decorado com estilo contemporâneo, sacada com churrasqueira e iluminação natural. Região vibrante com bares, galerias de arte e restaurantes.",
     },
     {
@@ -101,7 +101,7 @@ const MOCK_PROPERTIES: Property[] = [
         area: 95,
         lat: -23.5826,
         lng: -46.6855,
-        image: "/images/prop-004.jpg",
+        image: "https://sdk-apps-openai-production.up.railway.app/images/prop-004.jpg",
         description: "Apartamento mobiliado de alto padrão, ideal para executivos. Prédio moderno com coworking, academia 24h, spa e localização estratégica na Faria Lima.",
     },
     {
@@ -115,7 +115,7 @@ const MOCK_PROPERTIES: Property[] = [
         area: 280,
         lat: -23.6004,
         lng: -46.6695,
-        image: "/images/prop-005.jpg",
+        image: "https://sdk-apps-openai-production.up.railway.app/images/prop-005.jpg",
         description: "Casa ampla com quintal, piscina, área gourmet completa e hidromassagem. Excelente para famílias, perto do Parque Ibirapuera, escolas e comércio.",
     },
 ];
