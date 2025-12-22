@@ -23,6 +23,56 @@
       box-sizing: border-box;
     }
 
+    /* Info Window Styles - Force Dark Theme */
+    .gm-style-iw {
+      background-color: #2a2a2a !important;
+      color: #f5f5f5 !important;
+      padding: 0 !important;
+      border-radius: 8px !important;
+    }
+
+    .gm-style-iw-c {
+      background-color: #2a2a2a !important;
+      padding: 0 !important;
+    }
+
+    .gm-style-iw-d {
+      background-color: #2a2a2a !important;
+      color: #f5f5f5 !important;
+      overflow: hidden !important;
+    }
+
+    /* Remove the default tail arrow background if needed, or color it */
+    .gm-style-iw-tc::after {
+      background: #2a2a2a !important;
+    }
+
+    /* Custom content styles */
+    .info-window {
+      background: #2a2a2a;
+      color: #f5f5f5;
+      padding: 12px;
+      min-width: 200px;
+    }
+
+    .info-window h3 {
+      font-size: 16px;
+      margin: 0 0 8px 0;
+      color: #fff;
+    }
+
+    .info-window p {
+      margin: 4px 0;
+      color: #bbb;
+    }
+
+    .info-window .price {
+      color: var(--price-color);
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 8px;
+    }
+
     html,
     body {
       margin: 0;

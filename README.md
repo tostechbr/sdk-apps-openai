@@ -1,124 +1,88 @@
-# OpenAI Apps SDK - Demo Gallery
+# OpenAI SDK Apps - Use Cases Gallery 🚀
 
-A collection of demo applications showcasing different use cases for the OpenAI Apps SDK. Each application demonstrates how to build interactive experiences within ChatGPT using the Model Context Protocol (MCP).
+Bem-vindo ao repositório oficial de exemplos e casos de uso do **OpenAI Apps SDK**. Este projeto reúne aplicações práticas desenvolvidas com o *Model Context Protocol (MCP)*, demonstrando como criar experiências ricas e interativas diretamente no ChatGPT.
 
-## Overview
+🔗 **Repositório:** [https://github.com/tostechbr/sdk-apps-openai](https://github.com/tostechbr/sdk-apps-openai)
 
-This repository contains practical examples of ChatGPT Apps that leverage the OpenAI Apps SDK to create rich, interactive user interfaces rendered directly in ChatGPT conversations. Each demo is self-contained and can be deployed independently.
+## 🎯 O que são SDK Apps?
 
-## Available Demos
+SDK Apps são integrações que permitem ao ChatGPT não apenas "falar", mas também **mostrar** e **interagir**. Eles combinam a inteligência do modelo de linguagem com interfaces visuais (widgets) renderizadas em tempo real.
 
-### Real Estate Map
+Este repositório serve como um guia vivo de implementação, evoluindo de projeto para projeto com arquiteturas e padrões reutilizáveis.
 
-An interactive property listing application featuring an embedded map powered by Leaflet.js. Users can search and filter real estate properties, with results displayed on an interactive map with property markers and detailed cards.
+---
 
-**Features:**
-- Interactive map with property markers
-- Property filtering by type (house/apartment)
-- Price-based filtering
-- Responsive property cards
-- Mock data for demonstration
+## 📚 Casos de Uso (Use Cases)
 
-**Directory:** `apps/real-estate/`
+### 1. 🏢 Real Estate Map (Imobiliária Inteligente)
+*Uma experiência completa de busca de imóveis com mapas interativos.*
 
-[View Documentation](apps/real-estate/README.md)
+O ChatGPT atua como um corretor inteligente que pode:
+- Buscar imóveis por tipo (Casa, Apartamento, Studio).
+- Filtrar por faixa de preço e localização.
+- Exibir resultados em um **Mapa Interativo (Google Maps)** dentro do chat.
+- Mostrar cards detalhados com fotos e preços.
 
-## Technology Stack
+**Destaques Técnicos:**
+- **Visualização:** Google Maps API com marcadores personalizados e clusters.
+- **Protocolo:** MCP (Server-Sent Events) para comunicação bidirecional.
+- **Interatividade:** O clique no card do imóvel foca o mapa e abre detalhes.
+- **UX:** Dark Mode premium e responsivo.
 
-- **Protocol:** Model Context Protocol (MCP)
-- **Backend:** Node.js with @modelcontextprotocol/sdk
-- **Frontend:** Vanilla JavaScript, HTML5, CSS3
-- **Validation:** Zod schema validation
-- **Transport:** HTTP with Server-Sent Events
+📂 **Código Fonte:** [`apps/real-estate/`](apps/real-estate/README.md)
 
-## Getting Started
+---
 
-### Prerequisites
+### 2. ⏳ Próximos Use Cases (Em Breve)
+Novos exemplos estão sendo desenvolvidos para explorar outras capacidades do SDK:
+- **Finance Dashboard:** Gráficos interativos de ações e despesas.
+- **Travel Planner:** Itinerários de viagem com mapas e reservas.
+- **E-commerce:** Vitrine de produtos com carrinho de compras.
 
-- Node.js 18 or higher
-- npm or yarn
-- OpenAI ChatGPT account with Developer Mode enabled
+---
 
-### Installation
+## 🛠️ Stack Tecnológica
 
-1. Clone the repository:
+Todos os apps neste repositório seguem um padrão moderno e robusto:
+
+- **Protocolo:** [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
+- **Runtime:** Node.js (v18+)
+- **Linguagem:** TypeScript (para tipagem segura e DX)
+- **Transport:** HTTP com Server-Sent Events (SSE)
+- **Frontend:** Vanilla JS / HTML5 (para widgets leves e rápidos)
+
+## 🚀 Como Começar
+
+1. Clone o repositório:
 ```bash
-git clone https://github.com/yourusername/sdk-apps-openai.git
+git clone https://github.com/tostechbr/sdk-apps-openai.git
 cd sdk-apps-openai
 ```
 
-2. Navigate to a specific app:
+2. Escolha um App e instale as dependências:
 ```bash
 cd apps/real-estate
-```
-
-3. Install dependencies:
-```bash
 npm install
 ```
 
-4. Start the server:
+3. Configure as variáveis de ambiente (ex: API Keys):
 ```bash
-npm start
+cp .env.example .env
 ```
 
-### Testing Locally
-
-Use the MCP Inspector to test your application:
-
+4. Rode localmente e teste com o **MCP Inspector**:
 ```bash
-npx @modelcontextprotocol/inspector@latest http://localhost:8787/mcp
+npm run dev
+npx @modelcontextprotocol/inspector sse http://localhost:8787/mcp
 ```
 
-### Deployment
+## 🤝 Contribuindo
 
-Each application can be deployed to various platforms:
+Quer adicionar um novo Use Case?
+1. Crie uma nova pasta em `apps/`.
+2. Siga a estrutura padrão (server.ts, public/widget.html).
+3. Documente seu "Use Case" aqui no README principal.
 
-- **Railway:** Use the Railway CLI for quick deployment
-- **Vercel:** Deploy as a Node.js serverless function
-- **Docker:** Build and deploy as a container
-- **Traditional VPS:** Deploy as a standard Node.js application
+## 📄 Licença
 
-Refer to individual app documentation for specific deployment instructions.
-
-## Project Structure
-
-```
-sdk-apps-openai/
-├── apps/
-│   └── real-estate/          # Real estate map demo
-│       ├── public/
-│       │   └── widget.html   # UI widget
-│       ├── server.js         # MCP server
-│       ├── package.json
-│       └── README.md
-├── .gitignore
-└── README.md                 # This file
-```
-
-## Contributing
-
-Contributions are welcome! Each demo application should:
-
-- Be self-contained within its own directory
-- Include comprehensive documentation
-- Follow the MCP specification
-- Include example data for testing
-- Be deployment-ready
-
-## Resources
-
-- [OpenAI Apps SDK Documentation](https://platform.openai.com/docs/apps-sdk)
-- [Model Context Protocol Specification](https://modelcontextprotocol.io/)
-- [MCP SDK TypeScript](https://github.com/modelcontextprotocol/typescript-sdk)
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Support
-
-For questions or issues:
-- Open an issue in this repository
-- Refer to the OpenAI Apps SDK documentation
-- Check individual app README files
+MIT License - sinta-se livre para usar esses exemplos como base para seus próprios produtos.
