@@ -1,30 +1,13 @@
-# User Images Directory
+# Real Estate Images
 
-This directory contains user-provided property images.
+This directory contains user-provided property images served by the application.
 
-## Required Images
+## Files
+- `prop-001.png` - Apartamento de Luxo nos Jardins
+- `prop-002.jpg` - Casa Moderna em Pinheiros  
+- `prop-003.png` - Apartamento Charmoso na Vila Madalena
+- `prop-004.jpg` - Apartamento Corporativo no Itaim Bibi
+- `prop-005.jpg` - Casa Espaçosa em Moema (pending)
 
-Please add the following images to this directory:
-
-1. **prop-002.jpg** - Casa Moderna em Pinheiros
-   - Resolution: 600x400px recommended
-   - Format: JPEG
-   - Subject: Modern house exterior or interior
-
-2. **prop-004.jpg** - Apartamento Corporativo no Itaim Bibi
-   - Resolution: 600x400px recommended
-   - Format: JPEG
-   - Subject: Executive apartment interior
-
-## Image Guidelines
-
-- Keep file sizes reasonable (< 500KB each)
-- Use high-quality images that showcase the property
-- Ensure images are properly licensed if sourced externally
-
-## Current Status
-
-- [ ] prop-002.jpg (user to provide)
-- [ ] prop-004.jpg (user to provide)
-
-Other properties use Unsplash URLs and don't require local files.
+## Usage
+Images are served via the `/images/` endpoint and referenced in property data as `/images/prop-XXX.jpg|png`.

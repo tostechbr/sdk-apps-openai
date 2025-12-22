@@ -5,6 +5,7 @@ import {
 } from "node:http";
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
+import { join, extname } from "node:path";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import {
@@ -58,7 +59,7 @@ const MOCK_PROPERTIES: Property[] = [
         area: 145,
         lat: -23.5669,
         lng: -46.6725,
-        image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop",
+        image: "/images/prop-001.png",
         description: "Apartamento de alto padrão com acabamento premium, vista panorâmica e sacada gourmet. Condomínio completo com piscina, academia, salão de festas e segurança 24h.",
     },
     {
@@ -86,7 +87,7 @@ const MOCK_PROPERTIES: Property[] = [
         area: 75,
         lat: -23.5483,
         lng: -46.6925,
-        image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&h=400&fit=crop",
+        image: "/images/prop-003.png",
         description: "Apartamento decorado com estilo contemporâneo, sacada com churrasqueira e iluminação natural. Região vibrante com bares, galerias de arte e restaurantes.",
     },
     {
@@ -114,7 +115,7 @@ const MOCK_PROPERTIES: Property[] = [
         area: 280,
         lat: -23.6004,
         lng: -46.6695,
-        image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600&h=400&fit=crop",
+        image: "/images/prop-005.jpg",
         description: "Casa ampla com quintal, piscina, área gourmet completa e hidromassagem. Excelente para famílias, perto do Parque Ibirapuera, escolas e comércio.",
     },
 ];
@@ -456,6 +457,41 @@ const httpServer = createServer(
                 .writeHead(200, { "content-type": "text/plain" })
                 .end("Real Estate Map MCP Server");
             return;
+        }
+
+        // Serve static images
+        if (req.method === "GET" && url.pathname.startsWith("/images/")) {
+            try {
+                // Images are in project_root/public/images/
+                // Remove leading / from pathname for proper join
+                const relativePath = url.pathname.slice(1); // "/images/x.jpg" -> "images/x.jpg"
+                const imagePath = join(process.cwd(), "public", relativePath);
+
+                console.log(`[DEBUG] Serving image: ${imagePath}`);
+
+                const ext = extname(imagePath).toLowerCase();
+                const mimeTypes: { [key: string]: string } = {
+                    ".jpg": "image/jpeg",
+                    ".jpeg": "image/jpeg",
+                    ".png": "image/png",
+                    ".gif": "image/gif",
+                    ".webp": "image/webp",
+                };
+                const contentType = mimeTypes[ext] || "application/octet-stream";
+
+                const imageData = readFileSync(imagePath);
+                res.writeHead(200, {
+                    "Content-Type": contentType,
+                    "Access-Control-Allow-Origin": "*",
+                    "Cache-Control": "public, max-age=86400", // 24h cache
+                });
+                res.end(imageData);
+                return;
+            } catch (error) {
+                console.error("Error serving image:", error);
+                res.writeHead(404).end("Image not found");
+                return;
+            }
         }
 
         res.writeHead(404).end("Not Found");
