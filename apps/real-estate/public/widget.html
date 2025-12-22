@@ -196,16 +196,70 @@
       // Get properties from window.openai
       let properties = window.openai?.toolOutput?.properties ?? [];
 
-      // Create map centered on São Paulo
+      // Create map centered on São Paulo with DARK THEME
       map = new google.maps.Map(document.getElementById('map'), {
         center: { lat: -23.5505, lng: -46.6333 },
         zoom: 12,
         mapTypeId: 'roadmap',
+        // Dark theme styling
         styles: [
+          { elementType: "geometry", stylers: [{ color: "#1a1a1a" }] },
+          { elementType: "labels.text.stroke", stylers: [{ color: "#1a1a1a" }] },
+          { elementType: "labels.text.fill", stylers: [{ color: "#8b8b8b" }] },
           {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
+            featureType: "administrative.locality",
+            elementType: "labels.text.fill",
+            stylers: [{ color: "#b0b0b0" }]
+          },
+          {
+            featureType: "poi",
+            elementType: "labels.text.fill",
+            stylers: [{ color: "#6b6b6b" }]
+          },
+          {
+            featureType: "poi.park",
+            elementType: "geometry",
+            stylers: [{ color: "#1f3a1f" }]
+          },
+          {
+            featureType: "poi.park",
+            elementType: "labels.text.fill",
+            stylers: [{ color: "#5a7a5a" }]
+          },
+          {
+            featureType: "road",
+            elementType: "geometry",
+            stylers: [{ color: "#2a2a2a" }]
+          },
+          {
+            featureType: "road",
+            elementType: "geometry.stroke",
+            stylers: [{ color: "#1f1f1f" }]
+          },
+          {
+            featureType: "road.highway",
+            elementType: "geometry",
+            stylers: [{ color: "#3a3a3a" }]
+          },
+          {
+            featureType: "road.highway",
+            elementType: "geometry.stroke",
+            stylers: [{ color: "#2f2f2f" }]
+          },
+          {
+            featureType: "transit",
+            elementType: "geometry",
+            stylers: [{ color: "#2a2a2a" }]
+          },
+          {
+            featureType: "water",
+            elementType: "geometry",
+            stylers: [{ color: "#0f1f2f" }]
+          },
+          {
+            featureType: "water",
+            elementType: "labels.text.fill",
+            stylers: [{ color: "#4a6a7a" }]
           }
         ]
       });
@@ -250,20 +304,29 @@
           }
         });
 
-        // Create info window with property details
+        // Create info window with property details - DARK THEME
         const imageTag = property.image.startsWith('http') || property.image.startsWith('/')
-          ? `<img src="${property.image}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" onerror="this.style.display='none'" />`
+          ? `<img src="${property.image}" style="width: 180px; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" onerror="this.style.display='none'" />`
           : `<div style="font-size: 3rem; margin-bottom: 8px;">${property.image}</div>`;
 
         const infoWindow = new google.maps.InfoWindow({
           content: `
-            <div style="text-align: center; padding: 8px; max-width: 200px;">
+            <div style="
+              background: #2a2a2a;
+              color: #f5f5f5;
+              padding: 12px;
+              max-width: 220px;
+              border-radius: 8px;
+              font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+            ">
               ${imageTag}
-              <div><strong>${property.title}</strong></div>
-              <div style="color: #dc2626; font-weight: 700; font-size: 1.125rem; margin-top: 4px;">
+              <div style="font-weight: 600; font-size: 1rem; margin-bottom: 6px; color: #f5f5f5;">
+                ${property.title}
+              </div>
+              <div style="color: #ef4444; font-weight: 700; font-size: 1.25rem; margin: 6px 0;">
                 R$ ${property.price.toLocaleString('pt-BR')}
               </div>
-              <div style="color: #6c768a; font-size: 0.875rem; margin-top: 4px;">
+              <div style="color: #b0b0b0; font-size: 0.875rem; margin-top: 6px; line-height: 1.4;">
                 ${property.bedrooms} quartos • ${property.bathrooms} banheiros • ${property.area}m²
               </div>
             </div>
