@@ -1,100 +1,114 @@
-# 🏢 Real Estate Map - SDK App Case
+<div align="center">
 
-Uma aplicação de demonstração de **Imobiliária Inteligente** que combina a IA do ChatGPT com mapas interativos em tempo real. Este projeto exemplifica como modelos de linguagem podem "enxergar" e manipular interfaces geográficas complexas.
+# Real Estate App
 
-## ✨ Funcionalidades
+[![Module](https://img.shields.io/badge/Module-Real_Estate-blue.svg)](./)
+[![API](https://img.shields.io/badge/API-Google_Maps-green)](https://developers.google.com/maps)
+[![Status](https://img.shields.io/badge/Status-Production_Ready-success)](./)
 
-- **🗺️ Mapa Interativo:** Integração nativa com **Google Maps API**.
-- **🔍 Busca Inteligente:** O ChatGPT entende intenções como "quero um apê nos Jardins" ou "imóveis até 1 milhão".
-- **🎨 Dark Mode Premium:** Interface visual moderna e totalmente responsiva.
-- **⚡ Filtragem em Tempo Real:**
-    - Filtragem por tipo (Casa, Apartamento, Studio).
-    - Filtragem por faixa de preço e localização.
-- **📱 Cards Interativos:** Clique no card para destacar o imóvel no mapa; clique no pin para ver detalhes.
+**An intelligent property search agent capable of rendering interactive maps and filtering listings in real-time.**
 
----
+[Features](#features) • [Tools](#tools) • [Setup](#setup)
 
-## 🏗️ Arquitetura Técnica
-
-Esta aplicação é composta por dois componentes principais que se comunicam via **Model Context Protocol (MCP)**:
-
-### 1. MCP Server (Backend)
-Desenvolvido em **TypeScript**, expõe ferramentas (Tools) que o ChatGPT pode chamar:
-
-- `search_properties(filter?: string)`: Busca imóveis, opcionalmente filtrando por tipo ('casa' | 'apartamento').
-- `filter_by_price(maxPrice: number)`: Filtra imóveis abaixo de um valor específico.
-- `GET /mcp`: Endpoint SSE (Server-Sent Events) para conexão persistente.
-
-### 2. Widget UI (Frontend)
-Um arquivo único otimizado (`public/widget.html`) que contém:
-- Lógica de renderização do Google Maps.
-- Gerenciamento de estado local (markers, infowindows).
-- Estilização customizada (CSS in JS) para carregamento instantâneo.
+</div>
 
 ---
 
-## 🚀 Como Executar Localmente
+## Overview
 
-### Pré-requisitos
-- Node.js 18+
-- Chave de API do Google Maps (opcional para dev, configurada por padrão)
+The Real Estate Map application demonstrates the power of combining Large Language Models with geospatial data. It allows users to query property databases using natural language (e.g., "Find me a 2-bedroom apartment in Pinheiros under 1 million") and visualizes the results on an interactive Google Map embedded directly in the chat interface.
 
-### Passo a Passo
+## Features
 
-1. **Instale as dependências:**
-   ```bash
-   cd apps/real-estate
-   npm install
-   ```
+- **Interactive Mapping:** Native integration with Google Maps API for rendering property locations.
+- **Natural Language Filtering:** Advanced parsing of user intent to filter by price, type, and location.
+- **Dark Mode UI:** Optimized visual design for modern chat interfaces.
+- **Bi-directional Interaction:** Clicking map markers opens property details; clicking property cards highlights map locations.
 
-2. **Inicie o servidor de desenvolvimento:**
-   ```bash
-   npm run dev
-   ```
-   *O servidor iniciará na porta `8787`.*
+## Tools Definition
 
-3. **Teste com o MCP Inspector:**
-   Esta é a melhor forma de validar as tools sem gastar tokens do ChatGPT.
-   
-   ```bash
-   npx @modelcontextprotocol/inspector sse http://localhost:8787/mcp
-   ```
-   
-   > ⚠️ **Atenção:** No Inspector, certifique-se de selecionar **"Server-Sent Events"** no menu "Transport Type" antes de conectar.
+The MCP server exposes the following tools to the LLM:
 
----
+| Tool Name | Description | Parameters |
+| :--- | :--- | :--- |
+| `search_properties` | Retrieves a list of properties based on optional type filters. | `filter?`: "all" \| "casa" \| "apartamento" |
+| `filter_by_price` | Filters existing property lists by a maximum price threshold. | `maxPrice`: number (BRL) |
 
-## 🧪 Guia de Testes (Prompts)
+## Technical Stack
 
-Para validar a funcionalidade, use os seguintes prompts no Inspector ou no ChatGPT:
+- **Server:** Node.js + TypeScript (MCP SDK)
+- **Client:** HTML5 + Vanilla JS (Widget)
+- **Maps:** Google Maps Javascript API
+- **Styling:** Custom CSS with Dark Theme support
 
-| Teste | Prompt Sugerido | Resultado Esperado |
-|-------|-----------------|--------------------|
-| **Busca Geral** | "Mostre todos os imóveis disponíveis." | Mapa com 5 pinos e lista completa. |
-| **Filtro Tipo** | "Estou procurando apenas apartamentos." | Mapa com 3 pinos (Jardins, Itaim, Moema). |
-| **Filtro Preço** | "Quais imóveis custam mais de 1.5 milhão?" | Mapa com 2 pinos (Jardins e Pinheiros). |
-| **Range** | "Tem algo entre 900 mil e 1.2 milhão?" | Apenas 1 pino (Vila Madalena). |
-| **Complexo** | "Mostre apartamentos nos Jardins acima de 1 milhão." | Filtragem combinada correta. |
+## Setup & Execution
 
----
+### 1. Installation
 
-## 📦 Estrutura do Projeto
+Navigate to the project directory and install dependencies:
 
 ```bash
-apps/real-estate/
-├── public/
-│   └── widget.html       # O "frontend" renderizado no ChatGPT
-├── src/
-│   └── config/           # Configurações de ambiente
-├── server.ts             # Servidor MCP principal
-├── tsconfig.json         # Configuração TypeScript
-└── package.json
+cd apps/real-estate
+npm install
 ```
 
-## 🛠️ Customização
+### 2. Configuration
 
-Para adicionar seus próprios imóveis, edite a constante `MOCK_PROPERTIES` no arquivo `server.ts`. Em um cenário real, isso seria substituído por uma consulta ao banco de dados SQL/NoSQL.
+Ensure you have a `.env` file with your Google Maps API Key (optional for local dev if using mock data, but recommended):
 
----
+```bash
+GOOGLE_MAPS_API_KEY=your_api_key_here
+```
 
-**[Voltar para o Repositório Principal](../../README.md)**
+### 3. Running the Server
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+> The server will start on port `8787` and listen for SSE connections at `/mcp`.
+
+## Testing Guide
+
+To validate the application functionality without consuming LLM tokens, use the **MCP Inspector**:
+
+```bash
+npx @modelcontextprotocol/inspector sse http://localhost:8787/mcp
+```
+
+### Recommended Test Prompts
+
+| Intent | Prompt Example | Expected Result |
+| :--- | :--- | :--- |
+| **Broad Search** | "Show me all available properties." | Displays map with all 5 mock listings. |
+| **Type Filter** | "I am looking for an apartment." | Filters map to show only apartments (3 items). |
+| **Price Filter** | "Find properties under 1.5 million." | Updates map to show listings < R$ 1.5M. |
+| **Range/Complex** | "Apartments in Jardins above 1 million." | Combines type and price logic. |
+
+## Implementation Challenges
+
+**LLM Tool Ambiguity**
+Initial tests showed the model struggling to correctly apply price filters with vague constraints (e.g., "around 1 million"). We resolved this by explicitly defining specific examples in the tool description (minPrice/maxPrice), significantly improving intent recognition accuracy.
+
+**Property Imagery Hosting**
+Rendering local images within the ChatGPT sandbox presents cross-origin availability issues. The project currently implements robust fallback placeholders to ensure visual consistency when external image URLs are unreachable or blocked.
+
+**Inspector Protocol Mismatch**
+A common setup hurdle involves the MCP Inspector defaulting to HTTP transport. This server strictly implements Server-Sent Events (SSE), requiring manual transport selection in the debugging tool to avoid connection timeouts.
+
+## Project Structure
+
+```text
+apps/real-estate/
+├── public/
+│   └── widget.html       # Single-file optimized frontend widget
+├── src/
+│   ├── config/           # Environment variables & constants
+│   ├── data/             # Mock data and TypeScript interfaces
+│   └── utils/            # Helper functions (logger, formatters)
+├── server.ts             # Main MCP server entry point
+├── tsconfig.json         # TypeScript configuration
+└── package.json          # Module dependencies
+```

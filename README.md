@@ -1,88 +1,94 @@
-# OpenAI SDK Apps - Use Cases Gallery 🚀
+<div align="center">
 
-Bem-vindo ao repositório oficial de exemplos e casos de uso do **OpenAI Apps SDK**. Este projeto reúne aplicações práticas desenvolvidas com o *Model Context Protocol (MCP)*, demonstrando como criar experiências ricas e interativas diretamente no ChatGPT.
+# OpenAI SDK Apps Collection
 
-🔗 **Repositório:** [https://github.com/tostechbr/sdk-apps-openai](https://github.com/tostechbr/sdk-apps-openai)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
+[![Protocol](https://img.shields.io/badge/Protocol-MCP-orange)](https://modelcontextprotocol.io/)
 
-## 🎯 O que são SDK Apps?
+**A curated gallery of interactive applications developed with the OpenAI Apps SDK and Model Context Protocol.**
 
-SDK Apps são integrações que permitem ao ChatGPT não apenas "falar", mas também **mostrar** e **interagir**. Eles combinam a inteligência do modelo de linguagem com interfaces visuais (widgets) renderizadas em tempo real.
+[Architecture](#architecture) • [Projects](#projects) • [Getting Started](#getting-started) • [Repository](https://github.com/tostechbr/sdk-apps-openai)
 
-Este repositório serve como um guia vivo de implementação, evoluindo de projeto para projeto com arquiteturas e padrões reutilizáveis.
-
----
-
-## 📚 Casos de Uso (Use Cases)
-
-### 1. 🏢 Real Estate Map (Imobiliária Inteligente)
-*Uma experiência completa de busca de imóveis com mapas interativos.*
-
-O ChatGPT atua como um corretor inteligente que pode:
-- Buscar imóveis por tipo (Casa, Apartamento, Studio).
-- Filtrar por faixa de preço e localização.
-- Exibir resultados em um **Mapa Interativo (Google Maps)** dentro do chat.
-- Mostrar cards detalhados com fotos e preços.
-
-**Destaques Técnicos:**
-- **Visualização:** Google Maps API com marcadores personalizados e clusters.
-- **Protocolo:** MCP (Server-Sent Events) para comunicação bidirecional.
-- **Interatividade:** O clique no card do imóvel foca o mapa e abre detalhes.
-- **UX:** Dark Mode premium e responsivo.
-
-📂 **Código Fonte:** [`apps/real-estate/`](apps/real-estate/README.md)
+</div>
 
 ---
 
-### 2. ⏳ Próximos Use Cases (Em Breve)
-Novos exemplos estão sendo desenvolvidos para explorar outras capacidades do SDK:
-- **Finance Dashboard:** Gráficos interativos de ações e despesas.
-- **Travel Planner:** Itinerários de viagem com mapas e reservas.
-- **E-commerce:** Vitrine de produtos com carrinho de compras.
+## Overview
 
----
+This repository demonstrates advanced integration patterns between Large Language Models (LLMs) and interactive user interfaces. By leveraging the **Model Context Protocol (MCP)**, these applications allow ChatGPT to render dynamic widgets, visualize data in real-time, and perform complex actions beyond simple text generation.
 
-## 🛠️ Stack Tecnológica
+The collection serves as a reference implementation for developers building the next generation of AI-native applications.
 
-Todos os apps neste repositório seguem um padrão moderno e robusto:
+## Projects
 
-- **Protocolo:** [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- **Runtime:** Node.js (v18+)
-- **Linguagem:** TypeScript (para tipagem segura e DX)
-- **Transport:** HTTP com Server-Sent Events (SSE)
-- **Frontend:** Vanilla JS / HTML5 (para widgets leves e rápidos)
+| Project | Description | Key Technologies | Status |
+| :--- | :--- | :--- | :--- |
+| **[Real Estate Map](./apps/real-estate)** | Interactive property search engine with dynamic map visualization and filtering capabilities. | Google Maps API, SSE, Zod | 🟢 Active |
+| **Finance Dashboard** | Real-time financial data visualization with interactive charts (Coming Soon). | Chart.js, WebSocket | 🟡 Planned |
+| **Travel Planner** | Itinerary builder with geo-spatial routing and booking integration (Coming Soon). | Mapbox, external APIs | 🟡 Planned |
 
-## 🚀 Como Começar
+## Architecture
 
-1. Clone o repositório:
+All applications in this monorepo share a unified architectural pattern designed for scalability and maintainability:
+
+- **Protocol:** Model Context Protocol (MCP) for standardized LLM communication.
+- **Transport:** Server-Sent Events (SSE) over HTTP for persistent, bi-directional data flow.
+- **Backend:** Node.js/TypeScript services implementing tool definitions and business logic.
+- **Frontend:** Lightweight, zero-dependency HTML/JS widgets injected directly into the chat interface.
+
+## Getting Started
+
+Follow these steps to set up the environment and run the demo applications locally.
+
+### Prerequisites
+
+| Requirement | Version | Purpose |
+| :--- | :--- | :--- |
+| **Node.js** | v18.0.0+ | Javascript Runtime |
+| **npm** | v9.0.0+ | Package Manager |
+| **Google Maps Key** | Active | Required for Real Estate App |
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/tostechbr/sdk-apps-openai.git
+   cd sdk-apps-openai
+   ```
+
+2. Navigate to the target application directory (e.g., Real Estate):
+   ```bash
+   cd apps/real-estate
+   ```
+
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+4. Configure environment variables (create `.env` file):
+   ```bash
+   cp .env.example .env
+   # Edit .env with your specific API keys
+   ```
+
+## Development Workflow
+
+We recommend using the **MCP Inspector** for local development and testing of tool definitions before integration with ChatGPT.
+
 ```bash
-git clone https://github.com/tostechbr/sdk-apps-openai.git
-cd sdk-apps-openai
-```
-
-2. Escolha um App e instale as dependências:
-```bash
-cd apps/real-estate
-npm install
-```
-
-3. Configure as variáveis de ambiente (ex: API Keys):
-```bash
-cp .env.example .env
-```
-
-4. Rode localmente e teste com o **MCP Inspector**:
-```bash
+# Start the development server
 npm run dev
+
+# In a separate terminal, launch the Inspector
 npx @modelcontextprotocol/inspector sse http://localhost:8787/mcp
 ```
 
-## 🤝 Contribuindo
+## Contributing
 
-Quer adicionar um novo Use Case?
-1. Crie uma nova pasta em `apps/`.
-2. Siga a estrutura padrão (server.ts, public/widget.html).
-3. Documente seu "Use Case" aqui no README principal.
+We welcome contributions to expand this collection of use cases. Please ensure all new modules follow the established directory structure and include comprehensive documentation.
 
-## 📄 Licença
+## License
 
-MIT License - sinta-se livre para usar esses exemplos como base para seus próprios produtos.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
