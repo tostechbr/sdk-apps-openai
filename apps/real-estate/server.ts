@@ -25,107 +25,26 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
-// Types
-type Property = {
-    id: string;
-    title: string;
-    price: number;
-    type: "casa" | "apartamento";
-    address: string;
-    bedrooms: number;
-    bathrooms: number;
-    area: number;
-    lat: number;
-    lng: number;
-    image: string;
-    description: string;
-};
+// Internal imports
+import { config } from "./src/config/env.js";
+import { CSP_DOMAINS } from "./src/config/constants.js";
+import { PROPERTIES } from "./src/data/properties.js";
+import type { Property } from "./src/data/types.js";
+import { formatPrice, formatPropertyDetails } from "./src/utils/formatters.js";
+import { logger } from "./src/utils/logger.js";
 
+// Session management type
 type SessionRecord = {
     server: Server;
     transport: SSEServerTransport;
 };
 
-// Mock data - 5 real properties in São Paulo, Brazil (2024 market data)
-const MOCK_PROPERTIES: Property[] = [
-    {
-        id: "prop-001",
-        title: "Apartamento de Luxo nos Jardins",
-        price: 1850000,
-        type: "apartamento",
-        address: "Rua Estados Unidos, 1500 - Jardim América, São Paulo - SP",
-        bedrooms: 3,
-        bathrooms: 3,
-        area: 145,
-        lat: -23.5669,
-        lng: -46.6725,
-        image: "https://sdk-apps-openai-production.up.railway.app/images/prop-001.png",
-        description: "Apartamento de alto padrão com acabamento premium, vista panorâmica e sacada gourmet. Condomínio completo com piscina, academia, salão de festas e segurança 24h.",
-    },
-    {
-        id: "prop-002",
-        title: "Casa Moderna em Pinheiros",
-        price: 2200000,
-        type: "casa",
-        address: "Rua Fradique Coutinho, 850 - Pinheiros, São Paulo - SP",
-        bedrooms: 4,
-        bathrooms: 3,
-        area: 220,
-        lat: -23.5615,
-        lng: -46.6893,
-        image: "https://sdk-apps-openai-production.up.railway.app/images/prop-002.jpg",
-        description: "Casa reformada com arquitetura contemporânea, jardim com deck, churrasqueira e piscina aquecida. Localização privilegiada perto do metrô Fradique Coutinho.",
-    },
-    {
-        id: "prop-003",
-        title: "Apartamento Charmoso na Vila Madalena",
-        price: 980000,
-        type: "apartamento",
-        address: "Rua Harmonia, 344 - Vila Madalena, São Paulo - SP",
-        bedrooms: 2,
-        bathrooms: 2,
-        area: 75,
-        lat: -23.5483,
-        lng: -46.6925,
-        image: "https://sdk-apps-openai-production.up.railway.app/images/prop-003.png",
-        description: "Apartamento decorado com estilo contemporâneo, sacada com churrasqueira e iluminação natural. Região vibrante com bares, galerias de arte e restaurantes.",
-    },
-    {
-        id: "prop-004",
-        title: "Apartamento Corporativo no Itaim Bibi",
-        price: 1450000,
-        type: "apartamento",
-        address: "Av. Brigadeiro Faria Lima, 2232 - Itaim Bibi, São Paulo - SP",
-        bedrooms: 2,
-        bathrooms: 2,
-        area: 95,
-        lat: -23.5826,
-        lng: -46.6855,
-        image: "https://sdk-apps-openai-production.up.railway.app/images/prop-004.jpg",
-        description: "Apartamento mobiliado de alto padrão, ideal para executivos. Prédio moderno com coworking, academia 24h, spa e localização estratégica na Faria Lima.",
-    },
-    {
-        id: "prop-005",
-        title: "Casa Espaçosa em Moema",
-        price: 1750000,
-        type: "casa",
-        address: "Rua Ministro Jesuíno Cardoso, 567 - Moema, São Paulo - SP",
-        bedrooms: 4,
-        bathrooms: 4,
-        area: 280,
-        lat: -23.6004,
-        lng: -46.6695,
-        image: "https://sdk-apps-openai-production.up.railway.app/images/prop-005.jpg",
-        description: "Casa ampla com quintal, piscina, área gourmet completa e hidromassagem. Excelente para famílias, perto do Parque Ibirapuera, escolas e comércio.",
-    },
-];
-
 // Load widget HTML
 const widgetHtml = readFileSync("public/widget.html", "utf8");
 
-// Template configuration
-const TEMPLATE_URI = "ui://widget/real-estate.html";
-const MIME_TYPE = "text/html+skybridge";
+// Template configuration (from config)
+const TEMPLATE_URI = config.TEMPLATE_URI;
+const MIME_TYPE = config.MIME_TYPE;
 
 // Input schemas
 const searchPropertiesSchema = {
@@ -169,17 +88,9 @@ function toolDescriptorMeta() {
         "openai/toolInvocation/invoked": "Properties found",
         "openai/widgetAccessible": true,
         "openai/widgetCSP": {
-            connect_domains: [
-                "https://maps.googleapis.com",
-                "https://maps.gstatic.com",
-            ],
-            resource_domains: [
-                "https://maps.googleapis.com",
-                "https://maps.gstatic.com",
-                "https://*.googleapis.com",
-                "https://*.gstatic.com",
-            ],
-            script_domains: ["https://maps.googleapis.com"],
+            connect_domains: [...CSP_DOMAINS.CONNECT],
+            resource_domains: [...CSP_DOMAINS.RESOURCE],
+            script_domains: [...CSP_DOMAINS.SCRIPT],
         },
         "openai/widgetDomain": "https://chatgpt.com",
     } as const;
@@ -304,9 +215,9 @@ function createRealEstateServer(): Server {
                 const parsed = searchParser.parse(args ?? {});
                 const filter = parsed.filter || "all";
 
-                let properties = MOCK_PROPERTIES;
+                let properties = PROPERTIES;
                 if (filter !== "all") {
-                    properties = MOCK_PROPERTIES.filter((p) => p.type === filter);
+                    properties = PROPERTIES.filter((p) => p.type === filter);
                 }
 
                 const message =
@@ -325,8 +236,8 @@ function createRealEstateServer(): Server {
                 const parsed = priceParser.parse(args ?? {});
                 const { maxPrice } = parsed;
 
-                const properties = MOCK_PROPERTIES.filter((p) => p.price <= maxPrice);
-                const message = `Found ${properties.length} properties under R$ ${maxPrice.toLocaleString("pt-BR")}`;
+                const properties = PROPERTIES.filter((p: Property) => p.price <= maxPrice);
+                const message = `Found ${properties.length} properties under ${formatPrice(maxPrice)}`;
 
                 return {
                     content: [{ type: "text", text: message }],
@@ -345,9 +256,9 @@ function createRealEstateServer(): Server {
 // Session management
 const sessions = new Map<string, SessionRecord>();
 
-// Paths
-const ssePath = "/mcp";
-const postPath = "/mcp/messages";
+// Paths (from config)
+const ssePath = config.MCP_SSE_PATH;
+const postPath = config.MCP_POST_PATH;
 
 // Handle SSE connection
 async function handleSseRequest(res: ServerResponse): Promise<void> {
@@ -365,14 +276,14 @@ async function handleSseRequest(res: ServerResponse): Promise<void> {
     };
 
     transport.onerror = (error) => {
-        console.error("SSE transport error:", error);
+        logger.error("SSE transport error:", error);
     };
 
     try {
         await server.connect(transport);
     } catch (error) {
         sessions.delete(sessionId);
-        console.error("Failed to start SSE session:", error);
+        logger.error("Failed to start SSE session:", error);
         if (!res.headersSent) {
             res.writeHead(500).end("Failed to establish SSE connection");
         }
@@ -405,7 +316,7 @@ async function handlePostMessage(
     try {
         await session.transport.handlePostMessage(req, res);
     } catch (error) {
-        console.error("Failed to process message:", error);
+        logger.error("Failed to process message:", error);
         if (!res.headersSent) {
             res.writeHead(500).end("Failed to process message");
         }
@@ -413,8 +324,7 @@ async function handlePostMessage(
 }
 
 // Server setup
-const portEnv = Number(process.env.PORT ?? 8787);
-const port = Number.isFinite(portEnv) ? portEnv : 8787;
+const port = config.PORT;
 
 const httpServer = createServer(
     async (req: IncomingMessage, res: ServerResponse) => {
@@ -467,7 +377,7 @@ const httpServer = createServer(
                 const relativePath = url.pathname.slice(1); // "/images/x.jpg" -> "images/x.jpg"
                 const imagePath = join(process.cwd(), "public", relativePath);
 
-                console.log(`[DEBUG] Serving image: ${imagePath}`);
+                logger.debug("Serving image:", imagePath);
 
                 const ext = extname(imagePath).toLowerCase();
                 const mimeTypes: { [key: string]: string } = {
@@ -488,7 +398,7 @@ const httpServer = createServer(
                 res.end(imageData);
                 return;
             } catch (error) {
-                console.error("Error serving image:", error);
+                logger.error("Error serving image:", error);
                 res.writeHead(404).end("Image not found");
                 return;
             }
@@ -499,16 +409,16 @@ const httpServer = createServer(
 );
 
 httpServer.on("clientError", (err: Error, socket) => {
-    console.error("HTTP client error:", err);
+    logger.error("HTTP client error:", err);
     socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
 });
 
 httpServer.listen(port, () => {
-    console.log(
+    logger.info(
         `Real Estate Map MCP server listening on http://localhost:${port}`
     );
-    console.log(`  SSE stream: GET http://localhost:${port}${ssePath}`);
-    console.log(
-        `  Message post: POST http://localhost:${port}${postPath}?sessionId=...`
+    logger.info(`  SSE stream: GET http://localhost:${port}${config.MCP_SSE_PATH}`);
+    logger.info(
+        `  Message post: POST http://localhost:${port}${config.MCP_POST_PATH}?sessionId=...`
     );
 });
