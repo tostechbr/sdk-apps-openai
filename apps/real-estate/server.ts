@@ -306,7 +306,6 @@ async function handleSseRequest(res: ServerResponse): Promise<void> {
 
     transport.onclose = async () => {
         sessions.delete(sessionId);
-        await server.close();
     };
 
     transport.onerror = (error) => {
