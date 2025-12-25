@@ -1,6 +1,6 @@
 <div align="center">
 
-# OpenAI SDK Apps Collection
+# SDK Apps Collection
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
@@ -24,9 +24,9 @@ The collection serves as a reference implementation for developers building the 
 
 | Project | Description | Key Technologies | Status |
 | :--- | :--- | :--- | :--- |
-| **[Real Estate Map](./apps/real-estate)** | Interactive property search engine with dynamic map visualization and filtering capabilities. | Google Maps API, SSE, Zod | 🟢 Active |
-| **Finance Dashboard** | Real-time financial data visualization with interactive charts (Coming Soon). | Chart.js, WebSocket | 🟡 Planned |
-| **Travel Planner** | Itinerary builder with geo-spatial routing and booking integration (Coming Soon). | Mapbox, external APIs | 🟡 Planned |
+| **[Real Estate Map](./apps/real-estate)** | Interactive property search engine with dynamic map visualization and filtering capabilities. | Google Maps API, SSE, Zod, MCP | 🟢 Active |
+| **Medical Appointment System** | Doctor availability scheduler with specialized checks and location support. (Learning Project) | Supabase, MCP, OpenAI SDK | 🟡 In Progress |
+
 
 ## Architecture
 
