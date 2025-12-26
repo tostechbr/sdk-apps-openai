@@ -22,6 +22,7 @@ Stores healthcare professional information.
 | `image_url` | Text | Doctor's photo URL |
 | `coordinates` | JSONB | Latitude and Longitude `{"lat": ..., "lng": ...}` |
 | `available_slots` | JSONB | **[Legacy]** Array of available slots. Use `time_slots` table instead. |
+| `created_at` | Timestamptz | Record creation timestamp |
 
 ### 2. Time Slots (`time_slots`)
 Scalable table for managing doctor availability.
@@ -32,6 +33,7 @@ Scalable table for managing doctor availability.
 | `doctor_id` | UUID | Reference to doctor (FK) |
 | `slot_time` | Timestamptz | Available slot time (ISO 8601) |
 | `is_available` | Boolean | Availability status (Default: true) |
+| `created_at` | Timestamptz | Record creation timestamp |
 
 ### 3. Appointments (`appointments`)
 
@@ -44,6 +46,7 @@ Records scheduled appointments.
 | `patient_name` | Text | Patient's name |
 | `patient_phone` | Text | Patient's contact number |
 | `scheduled_at` | Timestamptz | Appointment date and time |
+| `created_at` | Timestamptz | Record creation timestamp |
 
 ## How to Reproduce
 

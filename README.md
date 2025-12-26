@@ -25,7 +25,7 @@ The collection serves as a reference implementation for developers building the 
 | Project | Description | Key Technologies | Status |
 | :--- | :--- | :--- | :--- |
 | **[Real Estate Map](./apps/real-estate)** | Interactive property search engine with dynamic map visualization and filtering capabilities. | Google Maps API, SSE, Zod, MCP | 🟢 Active |
-| **Medical Appointment System** | Doctor availability scheduler with specialized checks and location support. (Learning Project) | Supabase, MCP, OpenAI SDK | 🟡 In Progress |
+| **[Medical Appointment](./apps/medical-appointment)** | Doctor scheduling system with availability checking, booking, and ambiguity handling. | Supabase, STDIO, Zod, MCP | 🟢 Active |
 
 
 ## Architecture
