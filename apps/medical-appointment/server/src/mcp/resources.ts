@@ -1,9 +1,37 @@
+import { readFileSync, existsSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { listDoctors, getAvailableSlots } from "../db/doctors.js";
 
-const WEB_APP_URL = process.env.WEB_APP_URL || "http://localhost:5173";
+// Resolve paths relative to this file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const WEB_DIST_DIR = join(__dirname, "..", "..", "..", "web", "dist");
+
+function loadWidgetAssets(): { js: string; css: string } {
+    const assetsDir = join(WEB_DIST_DIR, "assets");
+
+    if (!existsSync(assetsDir)) {
+        console.warn("web/dist not found. Run 'npm run build' in web/ folder.");
+        return { js: "", css: "" };
+    }
+
+    // Find the bundled files (Vite adds hash to filenames)
+    const fs = require("fs");
+    const files = fs.readdirSync(assetsDir) as string[];
+    const jsFile = files.find((f: string) => f.endsWith(".js"));
+    const cssFile = files.find((f: string) => f.endsWith(".css"));
+
+    return {
+        js: jsFile ? readFileSync(join(assetsDir, jsFile), "utf8") : "",
+        css: cssFile ? readFileSync(join(assetsDir, cssFile), "utf8") : "",
+    };
+}
 
 function getWidgetHtml(): string {
+    const { js, css } = loadWidgetAssets();
+
     return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -24,11 +52,12 @@ function getWidgetHtml(): string {
       padding: 40px;
       color: #666;
     }
+    ${css}
   </style>
 </head>
 <body>
   <div id="root"><div class="loading">Loading...</div></div>
-  <script type="module" src="${WEB_APP_URL}/src/main.tsx"></script>
+  <script type="module">${js}</script>
 </body>
 </html>`;
 }
@@ -51,8 +80,8 @@ export function registerResources(server: McpServer) {
                 _meta: {
                     "openai/widgetPrefersBorder": true,
                     "openai/widgetCSP": {
-                        connect_domains: [WEB_APP_URL, "https://*.supabase.co"],
-                        resource_domains: [WEB_APP_URL, "https://*.supabase.co"],
+                        connect_domains: ["https://*.supabase.co"],
+                        resource_domains: ["https://*.supabase.co"],
                     },
                 },
             }],

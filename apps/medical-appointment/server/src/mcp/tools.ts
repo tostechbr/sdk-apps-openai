@@ -18,6 +18,7 @@ export function registerTools(server: McpServer) {
                 "openai/outputTemplate": WIDGET_TEMPLATE,
                 "openai/toolInvocation/invoking": "Searching for doctors...",
                 "openai/toolInvocation/invoked": "Found doctors",
+                "openai/widgetAccessible": true,
             },
         },
         async ({ name, specialty, city }) => {
@@ -84,6 +85,7 @@ export function registerTools(server: McpServer) {
                 "openai/outputTemplate": WIDGET_TEMPLATE,
                 "openai/toolInvocation/invoking": "Checking availability...",
                 "openai/toolInvocation/invoked": "Availability loaded",
+                "openai/widgetAccessible": true,
             },
         },
         async ({ doctorId, doctorName, specialty }) => {
@@ -215,6 +217,7 @@ export function registerTools(server: McpServer) {
                 "openai/outputTemplate": WIDGET_TEMPLATE,
                 "openai/toolInvocation/invoking": "Scheduling appointment...",
                 "openai/toolInvocation/invoked": "Appointment scheduled",
+                "openai/widgetAccessible": true,
             },
         },
         async ({ doctorId, doctorName, specialty, slotId, slotTime, patientName, patientPhone }) => {
