@@ -43,19 +43,12 @@ function getWidgetHtml(): string {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: transparent;
     }
-    #root { min-height: 100px; }
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-      color: #666;
-    }
+    #root { min-height: 50px; }
     ${css}
   </style>
 </head>
 <body>
-  <div id="root"><div class="loading">Loading...</div></div>
+  <div id="root"></div>
   <script type="module">${js}</script>
 </body>
 </html>`;

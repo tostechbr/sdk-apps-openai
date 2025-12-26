@@ -33,7 +33,6 @@ export function registerTools(server: McpServer) {
                 }
 
                 const doctorsSummary = doctors.map(d => ({
-                    id: d.id,
                     name: d.name,
                     specialty: d.specialty,
                     city: d.city,
@@ -160,16 +159,24 @@ export function registerTools(server: McpServer) {
                     };
                 }
 
-                const slotsSummary = slots.map((s: TimeSlot) => ({
-                    id: s.id,
-                    time: s.slot_time,
-                }));
+                const slotsSummary = slots.map((s: TimeSlot) => {
+                    const date = new Date(s.slot_time);
+                    return {
+                        time: date.toLocaleString("pt-BR", {
+                            weekday: "short",
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        }),
+                    };
+                });
 
                 return {
                     content: [{ type: "text" as const, text: `${doctor!.name} (${doctor!.specialty}) has ${slots.length} available slot(s).` }],
                     structuredContent: {
                         success: true,
-                        doctor: { id: doctor!.id, name: doctor!.name, specialty: doctor!.specialty },
+                        doctor: { name: doctor!.name, specialty: doctor!.specialty },
                         count: slots.length,
                         slots: slotsSummary,
                     },
@@ -313,11 +320,9 @@ export function registerTools(server: McpServer) {
                     structuredContent: {
                         success: true,
                         appointment: {
-                            id: appointment.id,
-                            doctorId: doctor!.id,
                             doctorName: doctor!.name,
                             specialty: doctor!.specialty,
-                            scheduledAt: slot.slot_time,
+                            scheduledAt: formattedDate,
                             patientName,
                         },
                     },
