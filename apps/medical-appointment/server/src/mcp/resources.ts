@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -13,15 +13,14 @@ function loadWidgetAssets(): { js: string; css: string } {
     const assetsDir = join(WEB_DIST_DIR, "assets");
 
     if (!existsSync(assetsDir)) {
-        console.warn("web/dist not found. Run 'npm run build' in web/ folder.");
+        console.warn("web-dist not found. Ensure web bundle is included.");
         return { js: "", css: "" };
     }
 
     // Find the bundled files (Vite adds hash to filenames)
-    const fs = require("fs");
-    const files = fs.readdirSync(assetsDir) as string[];
-    const jsFile = files.find((f: string) => f.endsWith(".js"));
-    const cssFile = files.find((f: string) => f.endsWith(".css"));
+    const files = readdirSync(assetsDir);
+    const jsFile = files.find((f) => f.endsWith(".js"));
+    const cssFile = files.find((f) => f.endsWith(".css"));
 
     return {
         js: jsFile ? readFileSync(join(assetsDir, jsFile), "utf8") : "",
