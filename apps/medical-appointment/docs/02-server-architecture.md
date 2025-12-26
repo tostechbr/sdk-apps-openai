@@ -23,13 +23,16 @@ src/
 │
 ├── db/                # Data Access Layer (The "Chef")
 │   ├── client.ts      # Single Supabase Connection Instance
-│   └── doctors.ts     # Pure Business Logic (No MCP code here)
+│   ├── doctors.ts     # Doctor queries and search logic
+│   └── appointments.ts # Appointment creation and slot management
 │
 ├── mcp/               # Protocol Layer (The "Waiter")
 │   ├── resources.ts   # Exposes Data (doctor://...)
+│   ├── schemas.ts     # Zod input schemas for tools
 │   └── tools.ts       # Exposes Actions (schedule_appointment)
 │
 └── types/             # Shared TypeScript Interfaces
+    └── index.ts       # Doctor, TimeSlot, Appointment, etc.
 ```
 
 ## 3. Key Implementations

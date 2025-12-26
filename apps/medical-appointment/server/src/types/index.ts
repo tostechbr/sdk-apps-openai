@@ -10,7 +10,7 @@ export interface Doctor {
         lat: number;
         lng: number;
     };
-    available_slots?: string[]; // Legacy (kept for backward compat, but we prefer time_slots table)
+    available_slots?: string[];
 }
 
 export interface TimeSlot {
@@ -25,4 +25,25 @@ export interface Appointment {
     doctor_id: string;
     patient_name: string;
     scheduled_at: string;
+}
+
+export interface DoctorFilters {
+    name?: string;
+    specialty?: string;
+    city?: string;
+    state?: string;
+}
+
+export interface FindDoctorResult {
+    found: boolean;
+    ambiguous: boolean;
+    doctor?: Doctor;
+    matches: Doctor[];
+}
+
+export interface CreateAppointmentInput {
+    doctorId: string;
+    patientName: string;
+    patientPhone: string;
+    slotId: string;
 }
