@@ -10,17 +10,31 @@ The database handles two main tables:
 ### 1. Doctors (`doctors`)
 Stores healthcare professional information.
 
+
 | Column | Type | Description |
 | :--- | :--- | :--- |
 | `id` | UUID | Unique Identifier (Primary Key) |
 | `name` | Text | Doctor's name |
 | `specialty` | Text | Medical specialty (e.g., Cardiologist) |
-| `location` | Text | Human-readable address |
+| `address` | Text | Street address (e.g. "Av. Paulista, 1000") |
+| `city` | Text | City Name (e.g. "São Paulo") |
+| `state` | Text | State Code (e.g. "SP") |
 | `image_url` | Text | Doctor's photo URL |
 | `coordinates` | JSONB | Latitude and Longitude `{"lat": ..., "lng": ...}` |
-| `available_slots` | JSONB | Array of available slots (Initial mock) |
+| `available_slots` | JSONB | **[Legacy]** Array of available slots. Use `time_slots` table instead. |
 
-### 2. Appointments (`appointments`)
+### 2. Time Slots (`time_slots`)
+Scalable table for managing doctor availability.
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `id` | UUID | Unique Identifier |
+| `doctor_id` | UUID | Reference to doctor (FK) |
+| `slot_time` | Timestamptz | Available slot time (ISO 8601) |
+| `is_available` | Boolean | Availability status (Default: true) |
+
+### 3. Appointments (`appointments`)
+
 Records scheduled appointments.
 
 | Column | Type | Description |
