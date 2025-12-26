@@ -7,7 +7,7 @@ import { listDoctors, getAvailableSlots } from "../db/doctors.js";
 // Resolve paths relative to this file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const WEB_DIST_DIR = join(__dirname, "..", "..", "..", "web", "dist");
+const WEB_DIST_DIR = join(__dirname, "..", "..", "web-dist");
 
 function loadWidgetAssets(): { js: string; css: string } {
     const assetsDir = join(WEB_DIST_DIR, "assets");
