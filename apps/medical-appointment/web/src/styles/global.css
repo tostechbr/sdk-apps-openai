@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Widget runs inside ChatGPT iframe - keep it clean */
+body {
+  @apply bg-transparent text-gray-900 antialiased;
+}
+
+/* Loading state */
+.loading-spinner {
+  @apply animate-spin h-5 w-5 border-2 border-gray-300 border-t-blue-600 rounded-full;
+}

@@ -4,14 +4,21 @@ import { createAppointment, checkSlotAvailability, getSlotByTime } from "../db/a
 import { TimeSlot } from "../types/index.js";
 import { searchDoctorsSchema, getAvailableSlotsSchema, scheduleAppointmentSchema } from "./schemas.js";
 
+const WIDGET_TEMPLATE = "ui://widget/medical-app.html";
+
 export function registerTools(server: McpServer) {
     // Tool 1: search_doctors
     server.registerTool(
         "search_doctors",
         {
             title: "Search Doctors",
-            description: "Use this when the user wants to find doctors. Searches by name, specialty, or city. All filters are optional and can be combined. Returns complete doctor information.",
+            description: "Use this when the user wants to find doctors. Searches by name, specialty, or city. All filters are optional and can be combined.",
             inputSchema: searchDoctorsSchema,
+            _meta: {
+                "openai/outputTemplate": WIDGET_TEMPLATE,
+                "openai/toolInvocation/invoking": "Searching for doctors...",
+                "openai/toolInvocation/invoked": "Found doctors",
+            },
         },
         async ({ name, specialty, city }) => {
             try {
@@ -19,46 +26,48 @@ export function registerTools(server: McpServer) {
 
                 if (doctors.length === 0) {
                     return {
-                        content: [{
-                            type: "text" as const,
-                            text: JSON.stringify({
-                                success: true,
-                                count: 0,
-                                message: "No doctors found with the given filters.",
-                                doctors: []
-                            })
-                        }]
+                        content: [{ type: "text" as const, text: "No doctors found with the given filters." }],
+                        structuredContent: { success: true, count: 0, doctors: [] },
                     };
                 }
 
+                const doctorsSummary = doctors.map(d => ({
+                    id: d.id,
+                    name: d.name,
+                    specialty: d.specialty,
+                    city: d.city,
+                    state: d.state,
+                }));
+
+                const doctorsRich = doctors.map(d => ({
+                    id: d.id,
+                    name: d.name,
+                    specialty: d.specialty,
+                    address: d.address,
+                    city: d.city,
+                    state: d.state,
+                    imageUrl: d.image_url,
+                    coordinates: d.coordinates,
+                }));
+
+                const filterDesc = [name, specialty, city].filter(Boolean).join(", ") || "all";
+
                 return {
-                    content: [{
-                        type: "text" as const,
-                        text: JSON.stringify({
-                            success: true,
-                            count: doctors.length,
-                            doctors: doctors.map(d => ({
-                                id: d.id,
-                                name: d.name,
-                                specialty: d.specialty,
-                                address: d.address,
-                                city: d.city,
-                                state: d.state,
-                                imageUrl: d.image_url,
-                                coordinates: d.coordinates
-                            }))
-                        })
-                    }]
+                    content: [{ type: "text" as const, text: `Found ${doctors.length} doctor(s) matching: ${filterDesc}.` }],
+                    structuredContent: {
+                        success: true,
+                        count: doctors.length,
+                        doctors: doctorsSummary,
+                    },
+                    _meta: {
+                        view: "doctors-list",
+                        doctors: doctorsRich,
+                    },
                 };
             } catch (error) {
                 return {
-                    content: [{
-                        type: "text" as const,
-                        text: JSON.stringify({
-                            success: false,
-                            error: error instanceof Error ? error.message : "Error searching doctors"
-                        })
-                    }]
+                    content: [{ type: "text" as const, text: `Error searching doctors: ${error instanceof Error ? error.message : "Unknown error"}` }],
+                    structuredContent: { success: false, error: error instanceof Error ? error.message : "Error searching doctors" },
                 };
             }
         }
@@ -69,120 +78,127 @@ export function registerTools(server: McpServer) {
         "get_available_slots",
         {
             title: "View Available Slots",
-            description: "Use this when the user wants to see available appointment times. You can pass the doctor's ID (UUID) OR search by name and specialty. If multiple doctors match the name, include the specialty to disambiguate.",
+            description: "Use this when the user wants to see available appointment times for a doctor. Pass doctor ID or name (with optional specialty to disambiguate).",
             inputSchema: getAvailableSlotsSchema,
+            _meta: {
+                "openai/outputTemplate": WIDGET_TEMPLATE,
+                "openai/toolInvocation/invoking": "Checking availability...",
+                "openai/toolInvocation/invoked": "Availability loaded",
+            },
         },
         async ({ doctorId, doctorName, specialty }) => {
             try {
-                // Validate: at least one identifier required
                 if (!doctorId && !doctorName) {
                     return {
-                        content: [{
-                            type: "text" as const,
-                            text: JSON.stringify({
-                                success: false,
-                                error: "Please provide the doctor's ID or name."
-                            })
-                        }]
+                        content: [{ type: "text" as const, text: "Please provide the doctor's ID or name." }],
+                        structuredContent: { success: false, error: "Missing doctor identifier" },
                     };
                 }
 
-                // Find doctor by ID or by name/specialty
                 let doctor;
 
                 if (doctorId) {
                     doctor = await getDoctorById(doctorId);
                     if (!doctor) {
                         return {
-                            content: [{
-                                type: "text" as const,
-                                text: JSON.stringify({
-                                    success: false,
-                                    error: `Doctor not found with ID: ${doctorId}`
-                                })
-                            }]
+                            content: [{ type: "text" as const, text: `Doctor not found with ID: ${doctorId}` }],
+                            structuredContent: { success: false, error: "Doctor not found" },
                         };
                     }
                 } else {
-                    // Search by name and optional specialty
                     const result = await findDoctor({ name: doctorName, specialty });
 
                     if (!result.found) {
                         return {
-                            content: [{
-                                type: "text" as const,
-                                text: JSON.stringify({
-                                    success: false,
-                                    error: `No doctor found with name "${doctorName}"${specialty ? ` and specialty "${specialty}"` : ''}.`
-                                })
-                            }]
+                            content: [{ type: "text" as const, text: `No doctor found with name "${doctorName}"${specialty ? ` (${specialty})` : ""}.` }],
+                            structuredContent: { success: false, error: "Doctor not found" },
                         };
                     }
 
                     if (result.ambiguous) {
-                        // Multiple matches - return list for user to choose
+                        const matches = result.matches.map(d => ({
+                            id: d.id,
+                            name: d.name,
+                            specialty: d.specialty,
+                        }));
+
                         return {
-                            content: [{
-                                type: "text" as const,
-                                text: JSON.stringify({
-                                    success: false,
-                                    ambiguous: true,
-                                    message: `Found ${result.matches.length} doctors with name "${doctorName}". Please specify the specialty or choose one:`,
-                                    matches: result.matches.map(d => ({
-                                        id: d.id,
-                                        name: d.name,
-                                        specialty: d.specialty,
-                                        address: d.address
-                                    }))
-                                })
-                            }]
+                            content: [{ type: "text" as const, text: `Found ${result.matches.length} doctors named "${doctorName}". Please specify which one.` }],
+                            structuredContent: {
+                                success: false,
+                                ambiguous: true,
+                                matches,
+                            },
+                            _meta: {
+                                view: "disambiguation",
+                                matches: result.matches.map(d => ({
+                                    id: d.id,
+                                    name: d.name,
+                                    specialty: d.specialty,
+                                    address: d.address,
+                                })),
+                            },
                         };
                     }
 
                     doctor = result.doctor;
                 }
 
-                // Get available slots
                 const slots = await getAvailableSlots(doctor!.id);
 
                 if (slots.length === 0) {
                     return {
-                        content: [{
-                            type: "text" as const,
-                            text: JSON.stringify({
-                                success: true,
-                                doctor: { id: doctor!.id, name: doctor!.name, specialty: doctor!.specialty },
-                                count: 0,
-                                message: "No available slots for this doctor.",
-                                slots: []
-                            })
-                        }]
+                        content: [{ type: "text" as const, text: `${doctor!.name} has no available slots at the moment.` }],
+                        structuredContent: {
+                            success: true,
+                            doctor: { id: doctor!.id, name: doctor!.name, specialty: doctor!.specialty },
+                            count: 0,
+                            slots: [],
+                        },
                     };
                 }
 
+                const slotsSummary = slots.map((s: TimeSlot) => ({
+                    id: s.id,
+                    time: s.slot_time,
+                }));
+
                 return {
-                    content: [{
-                        type: "text" as const,
-                        text: JSON.stringify({
-                            success: true,
-                            doctor: { id: doctor!.id, name: doctor!.name, specialty: doctor!.specialty },
-                            count: slots.length,
-                            slots: slots.map((s: TimeSlot) => ({
-                                id: s.id,
-                                time: s.slot_time
-                            }))
-                        })
-                    }]
+                    content: [{ type: "text" as const, text: `${doctor!.name} (${doctor!.specialty}) has ${slots.length} available slot(s).` }],
+                    structuredContent: {
+                        success: true,
+                        doctor: { id: doctor!.id, name: doctor!.name, specialty: doctor!.specialty },
+                        count: slots.length,
+                        slots: slotsSummary,
+                    },
+                    _meta: {
+                        view: "slots-list",
+                        doctor: {
+                            id: doctor!.id,
+                            name: doctor!.name,
+                            specialty: doctor!.specialty,
+                            address: doctor!.address,
+                            city: doctor!.city,
+                            state: doctor!.state,
+                            imageUrl: doctor!.image_url,
+                        },
+                        slots: slots.map((s: TimeSlot) => ({
+                            id: s.id,
+                            time: s.slot_time,
+                            formattedTime: new Date(s.slot_time).toLocaleString("pt-BR", {
+                                weekday: "long",
+                                day: "numeric",
+                                month: "long",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                            }),
+                        })),
+                    },
                 };
             } catch (error) {
                 return {
-                    content: [{
-                        type: "text" as const,
-                        text: JSON.stringify({
-                            success: false,
-                            error: error instanceof Error ? error.message : "Error fetching available slots"
-                        })
-                    }]
+                    content: [{ type: "text" as const, text: `Error fetching slots: ${error instanceof Error ? error.message : "Unknown error"}` }],
+                    structuredContent: { success: false, error: error instanceof Error ? error.message : "Error fetching slots" },
                 };
             }
         }
@@ -193,38 +209,31 @@ export function registerTools(server: McpServer) {
         "schedule_appointment",
         {
             title: "Schedule Appointment",
-            description: "Use this when the user wants to book an appointment. You can identify the doctor by UUID or by name+specialty. You can identify the time slot by UUID or by time string (e.g., '09:00'). If multiple doctors match, include the specialty.",
+            description: "Use this to book an appointment. Identify doctor by ID or name+specialty, and slot by ID or time (e.g., '09:00'). Requires patient name and phone.",
             inputSchema: scheduleAppointmentSchema,
+            _meta: {
+                "openai/outputTemplate": WIDGET_TEMPLATE,
+                "openai/toolInvocation/invoking": "Scheduling appointment...",
+                "openai/toolInvocation/invoked": "Appointment scheduled",
+            },
         },
         async ({ doctorId, doctorName, specialty, slotId, slotTime, patientName, patientPhone }) => {
             try {
-                // 1. Validate doctor identification
                 if (!doctorId && !doctorName) {
                     return {
-                        content: [{
-                            type: "text" as const,
-                            text: JSON.stringify({
-                                success: false,
-                                error: "Please provide the doctor's ID or name."
-                            })
-                        }]
+                        content: [{ type: "text" as const, text: "Please provide the doctor's ID or name." }],
+                        structuredContent: { success: false, error: "Missing doctor identifier" },
                     };
                 }
 
-                // 2. Find doctor
                 let doctor;
 
                 if (doctorId) {
                     doctor = await getDoctorById(doctorId);
                     if (!doctor) {
                         return {
-                            content: [{
-                                type: "text" as const,
-                                text: JSON.stringify({
-                                    success: false,
-                                    error: `Doctor not found with ID: ${doctorId}`
-                                })
-                            }]
+                            content: [{ type: "text" as const, text: `Doctor not found with ID: ${doctorId}` }],
+                            structuredContent: { success: false, error: "Doctor not found" },
                         };
                     }
                 } else {
@@ -232,51 +241,34 @@ export function registerTools(server: McpServer) {
 
                     if (!result.found) {
                         return {
-                            content: [{
-                                type: "text" as const,
-                                text: JSON.stringify({
-                                    success: false,
-                                    error: `No doctor found with name "${doctorName}"${specialty ? ` and specialty "${specialty}"` : ''}.`
-                                })
-                            }]
+                            content: [{ type: "text" as const, text: `No doctor found with name "${doctorName}"${specialty ? ` (${specialty})` : ""}.` }],
+                            structuredContent: { success: false, error: "Doctor not found" },
                         };
                     }
 
                     if (result.ambiguous) {
+                        const matches = result.matches.map(d => ({
+                            id: d.id,
+                            name: d.name,
+                            specialty: d.specialty,
+                        }));
+
                         return {
-                            content: [{
-                                type: "text" as const,
-                                text: JSON.stringify({
-                                    success: false,
-                                    ambiguous: true,
-                                    message: `Found ${result.matches.length} doctors with name "${doctorName}". Please specify the specialty:`,
-                                    matches: result.matches.map(d => ({
-                                        id: d.id,
-                                        name: d.name,
-                                        specialty: d.specialty
-                                    }))
-                                })
-                            }]
+                            content: [{ type: "text" as const, text: `Found ${result.matches.length} doctors named "${doctorName}". Please specify which one.` }],
+                            structuredContent: { success: false, ambiguous: true, matches },
                         };
                     }
 
                     doctor = result.doctor;
                 }
 
-                // 3. Validate slot identification
                 if (!slotId && !slotTime) {
                     return {
-                        content: [{
-                            type: "text" as const,
-                            text: JSON.stringify({
-                                success: false,
-                                error: "Please provide the slot ID or desired time (e.g., '09:00')."
-                            })
-                        }]
+                        content: [{ type: "text" as const, text: "Please provide the slot ID or desired time." }],
+                        structuredContent: { success: false, error: "Missing slot identifier" },
                     };
                 }
 
-                // 4. Find slot by ID or time
                 let slot;
                 if (slotId) {
                     slot = await checkSlotAvailability(slotId);
@@ -286,19 +278,11 @@ export function registerTools(server: McpServer) {
 
                 if (!slot) {
                     return {
-                        content: [{
-                            type: "text" as const,
-                            text: JSON.stringify({
-                                success: false,
-                                error: slotTime
-                                    ? `Time slot ${slotTime} is not available for ${doctor!.name}.`
-                                    : "This time slot is no longer available."
-                            })
-                        }]
+                        content: [{ type: "text" as const, text: slotTime ? `Time ${slotTime} is not available for ${doctor!.name}.` : "This slot is no longer available." }],
+                        structuredContent: { success: false, error: "Slot not available" },
                     };
                 }
 
-                // 5. Create appointment
                 const appointment = await createAppointment({
                     doctorId: doctor!.id,
                     slotId: slot.id,
@@ -308,44 +292,58 @@ export function registerTools(server: McpServer) {
 
                 if (!appointment) {
                     return {
-                        content: [{
-                            type: "text" as const,
-                            text: JSON.stringify({
-                                success: false,
-                                error: "Failed to create appointment. Please try again."
-                            })
-                        }]
+                        content: [{ type: "text" as const, text: "Failed to create appointment. Please try again." }],
+                        structuredContent: { success: false, error: "Failed to create appointment" },
                     };
                 }
 
-                // 6. Return success with confirmation details
+                const formattedDate = new Date(slot.slot_time).toLocaleString("pt-BR", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                });
+
                 return {
-                    content: [{
-                        type: "text" as const,
-                        text: JSON.stringify({
-                            success: true,
-                            message: "Appointment scheduled successfully!",
-                            appointment: {
-                                id: appointment.id,
-                                doctor: doctor!.name,
+                    content: [{ type: "text" as const, text: `Appointment confirmed with ${doctor!.name} (${doctor!.specialty}) on ${formattedDate}.` }],
+                    structuredContent: {
+                        success: true,
+                        appointment: {
+                            id: appointment.id,
+                            doctorId: doctor!.id,
+                            doctorName: doctor!.name,
+                            specialty: doctor!.specialty,
+                            scheduledAt: slot.slot_time,
+                            patientName,
+                        },
+                    },
+                    _meta: {
+                        view: "confirmation",
+                        appointment: {
+                            id: appointment.id,
+                            doctor: {
+                                id: doctor!.id,
+                                name: doctor!.name,
                                 specialty: doctor!.specialty,
-                                address: `${doctor!.address}, ${doctor!.city} - ${doctor!.state}`,
-                                scheduledAt: slot.slot_time,
-                                patient: patientName,
-                                phone: patientPhone
-                            }
-                        })
-                    }]
+                                address: doctor!.address,
+                                city: doctor!.city,
+                                state: doctor!.state,
+                                imageUrl: doctor!.image_url,
+                            },
+                            scheduledAt: slot.slot_time,
+                            formattedDate,
+                            patient: {
+                                name: patientName,
+                                phone: patientPhone,
+                            },
+                        },
+                    },
                 };
             } catch (error) {
                 return {
-                    content: [{
-                        type: "text" as const,
-                        text: JSON.stringify({
-                            success: false,
-                            error: error instanceof Error ? error.message : "Error scheduling appointment"
-                        })
-                    }]
+                    content: [{ type: "text" as const, text: `Error scheduling: ${error instanceof Error ? error.message : "Unknown error"}` }],
+                    structuredContent: { success: false, error: error instanceof Error ? error.message : "Error scheduling" },
                 };
             }
         }
