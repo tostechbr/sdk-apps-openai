@@ -10,10 +10,16 @@ const __dirname = dirname(__filename);
 
 // Load widget HTML from file (clean separation of concerns)
 // In production: dist/mcp/resources.js → ../public/widget.html = dist/public/widget.html
-const WIDGET_HTML = readFileSync(
-    join(__dirname, "..", "public", "widget.html"),
-    "utf8"
-);
+let WIDGET_HTML: string;
+try {
+    const widgetPath = join(__dirname, "..", "public", "widget.html");
+    console.log(`[Resources] Loading widget from: ${widgetPath}`);
+    WIDGET_HTML = readFileSync(widgetPath, "utf8");
+    console.log(`[Resources] Widget loaded successfully (${WIDGET_HTML.length} bytes)`);
+} catch (error) {
+    console.error("[Resources] Failed to load widget.html:", error);
+    WIDGET_HTML = `<!DOCTYPE html><html><body><div style="padding:16px;color:#666;">Widget loading error. Please try again.</div></body></html>`;
+}
 
 export function registerResources(server: McpServer) {
     // UI Widget Template - Main entry point for ChatGPT
