@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Medical Appointment</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .doctor-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .doctor-specialty {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .doctor-location {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .slot-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .slot-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+
+        .success-card {
+            background: #ecfdf5;
+            border-color: var(--success);
+            text-align: center;
+            padding: 24px;
+        }
+
+        .success-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--success);
+            border-radius: 50%;
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .success-title {
+            font-weight: 600;
+            font-size: 18px;
+            color: #065f46;
+            margin-bottom: 8px;
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 32px;
+        }
+
+        .section-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="root"></div>
+
+    <script type="module">
+        const root = document.getElementById("root");
+        const meta = window.openai?.toolResponseMetadata || {};
+        const view = meta.view || "default";
+
+        function getInitials(name) {
+            return name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+        }
+
+        function formatTime(timeStr) {
+            try {
+                const date = new Date(timeStr);
+                return date.toLocaleString("pt-BR", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+            } catch { return timeStr; }
+        }
+
+        function renderDoctors(doctors) {
+            if (!doctors?.length) {
+                return '<div class="empty">Nenhum médico encontrado.</div>';
+            }
+            return doctors.map(d => `
+        <div class="card" data-doctor-id="${d.id}">
+          <div class="card-header">
+            <div class="avatar">${getInitials(d.name)}</div>
+            <div>
+              <div class="doctor-name">${d.name}</div>
+              <div class="doctor-specialty">${d.specialty}</div>
+            </div>
+          </div>
+          <div class="doctor-location">📍 ${d.city || ""}${d.state ? ", " + d.state : ""}</div>
+        </div>
+      `).join("");
+        }
+
+        function renderSlots(doctor, slots) {
+            const header = `
+        <button class="back-btn" id="back-btn">← Voltar</button>
+        <div class="card" style="cursor: default;">
+          <div class="card-header">
+            <div class="avatar">${getInitials(doctor?.name)}</div>
+            <div>
+              <div class="doctor-name">${doctor?.name}</div>
+              <div class="doctor-specialty">${doctor?.specialty}</div>
+            </div>
+          </div>
+          ${doctor?.address ? `<div class="doctor-location">📍 ${doctor.address}</div>` : ""}
+        </div>
+        <div class="section-title">Horários Disponíveis</div>
+      `;
+
+            if (!slots?.length) {
+                return header + '<div class="empty">Sem horários disponíveis.</div>';
+            }
+
+            const slotsHtml = `
+        <div class="slots-grid">
+          ${slots.map(s => `
+            <button class="slot-btn" data-slot-id="${s.id}" data-slot-time="${s.formattedTime || formatTime(s.time)}">
+              ${s.formattedTime || formatTime(s.time)}
+            </button>
+          `).join("")}
+        </div>
+      `;
+
+            return header + slotsHtml;
+        }
+
+        function renderConfirmation(appointment) {
+            return `
+        <div class="card success-card">
+          <div class="success-icon">✓</div>
+          <div class="success-title">Consulta Agendada!</div>
+          <div style="margin-bottom: 8px;">
+            <strong>${appointment?.doctor?.name}</strong><br>
+            ${appointment?.doctor?.specialty}
+          </div>
+          <div style="color: var(--text-muted);">
+            📅 ${appointment?.formattedDate || formatTime(appointment?.scheduledAt)}<br>
+            👤 ${appointment?.patient?.name}
+          </div>
+        </div>
+      `;
+        }
+
+        // Render based on view
+        switch (view) {
+            case "doctors-list":
+                root.innerHTML = renderDoctors(meta.doctors);
+                root.querySelectorAll("[data-doctor-id]").forEach(el => {
+                    el.addEventListener("click", () => {
+                        const id = el.dataset.doctorId;
+                        if (window.openai?.callTool) {
+                            window.openai.callTool("get_available_slots", { doctorId: id });
+                        }
+                    });
+                });
+                break;
+
+            case "slots-list":
+                root.innerHTML = renderSlots(meta.doctor, meta.slots);
+                document.getElementById("back-btn")?.addEventListener("click", () => {
+                    window.openai?.sendFollowUpMessage?.("Mostrar médicos novamente");
+                });
+                root.querySelectorAll("[data-slot-id]").forEach(el => {
+                    el.addEventListener("click", () => {
+                        const time = el.dataset.slotTime;
+                        window.openai?.sendFollowUpMessage?.(`Quero agendar às ${time}. Meu nome é [seu nome] e telefone [seu telefone].`);
+                    });
+                });
+                break;
+
+            case "confirmation":
+                root.innerHTML = renderConfirmation(meta.appointment);
+                break;
+
+            case "disambiguation":
+                root.innerHTML = '<div class="section-title">Encontramos vários médicos</div>' + renderDoctors(meta.matches);
+                root.querySelectorAll("[data-doctor-id]").forEach(el => {
+                    el.addEventListener("click", () => {
+                        const id = el.dataset.doctorId;
+                        if (window.openai?.callTool) {
+                            window.openai.callTool("get_available_slots", { doctorId: id });
+                        }
+                    });
+                });
+                break;
+
+            default:
+                root.innerHTML = '<div class="empty">Pergunte sobre médicos para começar.</div>';
+        }
+
+        // Listen for updates from ChatGPT
+        window.addEventListener("openai:set_globals", (event) => {
+            if (event.detail?.globals?.toolResponseMetadata) {
+                location.reload();
+            }
+        });
+    </script>
+</body>
+
+</html>

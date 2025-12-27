@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -7,52 +7,12 @@ import { listDoctors, getAvailableSlots } from "../db/doctors.js";
 // Resolve paths relative to this file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const WEB_DIST_DIR = join(__dirname, "..", "..", "web-dist");
 
-function loadWidgetAssets(): { js: string; css: string } {
-    const assetsDir = join(WEB_DIST_DIR, "assets");
-
-    if (!existsSync(assetsDir)) {
-        console.warn("web-dist not found. Ensure web bundle is included.");
-        return { js: "", css: "" };
-    }
-
-    // Find the bundled files (Vite adds hash to filenames)
-    const files = readdirSync(assetsDir);
-    const jsFile = files.find((f) => f.endsWith(".js"));
-    const cssFile = files.find((f) => f.endsWith(".css"));
-
-    return {
-        js: jsFile ? readFileSync(join(assetsDir, jsFile), "utf8") : "",
-        css: cssFile ? readFileSync(join(assetsDir, cssFile), "utf8") : "",
-    };
-}
-
-function getWidgetHtml(): string {
-    const { js, css } = loadWidgetAssets();
-
-    return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Medical Appointment</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: transparent;
-    }
-    #root { min-height: 50px; }
-    ${css}
-  </style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module">${js}</script>
-</body>
-</html>`;
-}
+// Load widget HTML from file (clean separation of concerns)
+const WIDGET_HTML = readFileSync(
+    join(__dirname, "..", "..", "public", "widget.html"),
+    "utf8"
+);
 
 export function registerResources(server: McpServer) {
     // UI Widget Template - Main entry point for ChatGPT
@@ -68,7 +28,7 @@ export function registerResources(server: McpServer) {
             contents: [{
                 uri: "ui://widget/medical-app.html",
                 mimeType: "text/html+skybridge",
-                text: getWidgetHtml(),
+                text: WIDGET_HTML,
                 _meta: {
                     "openai/widgetPrefersBorder": true,
                     "openai/widgetCSP": {
@@ -79,8 +39,8 @@ export function registerResources(server: McpServer) {
             }],
         })
     );
-    // 1. Direct Resource: List ALL doctors
-    // URI: doctor://list
+
+    // Direct Resource: List ALL doctors
     server.registerResource(
         "list-doctors",
         "doctor://list",
@@ -89,7 +49,7 @@ export function registerResources(server: McpServer) {
             description: "Returns all doctors registered in the system",
             mimeType: "application/json"
         },
-        async (uri, _extra) => {
+        async (uri) => {
             try {
                 const doctors = await listDoctors();
                 return {
@@ -111,8 +71,7 @@ export function registerResources(server: McpServer) {
         }
     );
 
-    // 2. Resource Template: Available Slots for a Doctor
-    // URI: doctor://{id}/slots
+    // Resource Template: Available Slots for a Doctor
     server.registerResource(
         "doctor-available-slots",
         new ResourceTemplate("doctor://{id}/slots", { list: undefined }),
@@ -121,7 +80,7 @@ export function registerResources(server: McpServer) {
             description: "Lists available appointment slots for a specific doctor",
             mimeType: "application/json"
         },
-        async (uri, variables, _extra) => {
+        async (uri, variables) => {
             try {
                 const doctorId = variables.id as string;
                 const slots = await getAvailableSlots(doctorId);
