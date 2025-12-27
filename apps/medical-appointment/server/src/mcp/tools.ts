@@ -58,10 +58,11 @@ export function registerTools(server: McpServer) {
                         success: true,
                         count: doctors.length,
                         doctors: doctorsSummary,
-                    },
-                    _meta: {
+                        // Widget data
                         view: "doctors-list",
-                        doctors: doctorsRich,
+                        widgetData: {
+                            doctors: doctorsRich,
+                        },
                     },
                 };
             } catch (error) {
@@ -129,15 +130,16 @@ export function registerTools(server: McpServer) {
                                 success: false,
                                 ambiguous: true,
                                 matches,
-                            },
-                            _meta: {
+                                // Widget data
                                 view: "disambiguation",
-                                matches: result.matches.map(d => ({
-                                    id: d.id,
-                                    name: d.name,
-                                    specialty: d.specialty,
-                                    address: d.address,
-                                })),
+                                widgetData: {
+                                    matches: result.matches.map(d => ({
+                                        id: d.id,
+                                        name: d.name,
+                                        specialty: d.specialty,
+                                        address: d.address,
+                                    })),
+                                },
                             },
                         };
                     }
@@ -179,29 +181,30 @@ export function registerTools(server: McpServer) {
                         doctor: { name: doctor!.name, specialty: doctor!.specialty },
                         count: slots.length,
                         slots: slotsSummary,
-                    },
-                    _meta: {
+                        // Widget data
                         view: "slots-list",
-                        doctor: {
-                            id: doctor!.id,
-                            name: doctor!.name,
-                            specialty: doctor!.specialty,
-                            address: doctor!.address,
-                            city: doctor!.city,
-                            state: doctor!.state,
-                            imageUrl: doctor!.image_url,
+                        widgetData: {
+                            doctor: {
+                                id: doctor!.id,
+                                name: doctor!.name,
+                                specialty: doctor!.specialty,
+                                address: doctor!.address,
+                                city: doctor!.city,
+                                state: doctor!.state,
+                                imageUrl: doctor!.image_url,
+                            },
+                            slots: slots.map((s: TimeSlot) => ({
+                                id: s.id,
+                                time: s.slot_time,
+                                formattedTime: new Date(s.slot_time).toLocaleString("pt-BR", {
+                                    weekday: "long",
+                                    day: "numeric",
+                                    month: "long",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                }),
+                            })),
                         },
-                        slots: slots.map((s: TimeSlot) => ({
-                            id: s.id,
-                            time: s.slot_time,
-                            formattedTime: new Date(s.slot_time).toLocaleString("pt-BR", {
-                                weekday: "long",
-                                day: "numeric",
-                                month: "long",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            }),
-                        })),
                     },
                 };
             } catch (error) {
@@ -325,25 +328,26 @@ export function registerTools(server: McpServer) {
                             scheduledAt: formattedDate,
                             patientName,
                         },
-                    },
-                    _meta: {
+                        // Widget data
                         view: "confirmation",
-                        appointment: {
-                            id: appointment.id,
-                            doctor: {
-                                id: doctor!.id,
-                                name: doctor!.name,
-                                specialty: doctor!.specialty,
-                                address: doctor!.address,
-                                city: doctor!.city,
-                                state: doctor!.state,
-                                imageUrl: doctor!.image_url,
-                            },
-                            scheduledAt: slot.slot_time,
-                            formattedDate,
-                            patient: {
-                                name: patientName,
-                                phone: patientPhone,
+                        widgetData: {
+                            appointment: {
+                                id: appointment.id,
+                                doctor: {
+                                    id: doctor!.id,
+                                    name: doctor!.name,
+                                    specialty: doctor!.specialty,
+                                    address: doctor!.address,
+                                    city: doctor!.city,
+                                    state: doctor!.state,
+                                    imageUrl: doctor!.image_url,
+                                },
+                                scheduledAt: slot.slot_time,
+                                formattedDate,
+                                patient: {
+                                    name: patientName,
+                                    phone: patientPhone,
+                                },
                             },
                         },
                     },

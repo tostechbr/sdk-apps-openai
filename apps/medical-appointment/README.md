@@ -4,11 +4,12 @@
 
 [![Module](https://img.shields.io/badge/Module-Medical_Appointment-blue.svg)](./)
 [![Database](https://img.shields.io/badge/Database-Supabase-green)](https://supabase.com)
-[![Status](https://img.shields.io/badge/Status-In_Development-yellow)](./)
+[![Transport](https://img.shields.io/badge/Transport-HTTP-orange)](./)
+[![Status](https://img.shields.io/badge/Status-Production-brightgreen)](./)
 
-**An intelligent medical appointment scheduling system with doctor search, availability checking, and booking capabilities.**
+**An intelligent medical appointment scheduling system with doctor search, availability checking, and booking capabilities. Integrates with ChatGPT via OpenAI Apps SDK.**
 
-[Features](#features) • [Tools](#tools-definition) • [Setup](#setup--execution)
+[Features](#features) • [Tools](#tools-definition) • [Setup](#setup--execution) • [ChatGPT Integration](#chatgpt-integration)
 
 </div>
 
@@ -18,16 +19,19 @@
 
 The Medical Appointment application demonstrates the power of combining Large Language Models with healthcare scheduling. It allows users to search for doctors, check availability, and book appointments using natural language (e.g., "Find me a cardiologist in São Paulo and schedule for tomorrow at 9am").
 
+**This app integrates with ChatGPT** using the OpenAI Apps SDK, providing an interactive widget UI that renders inline with the conversation.
+
 ## Features
 
 - **Doctor Search:** Find healthcare professionals by name, specialty, or city.
 - **Real-time Availability:** Check available appointment slots for any doctor.
 - **Smart Booking:** Schedule appointments with automatic slot management.
 - **Ambiguity Handling:** Intelligent disambiguation when multiple doctors match the query.
+- **Interactive Widget:** Rich UI rendered inside ChatGPT with clickable doctor cards and time slots.
 
 ## Tools Definition
 
-The MCP server exposes the following tools to the LLM:
+The MCP server exposes the following tools to ChatGPT:
 
 | Tool Name | Description | Parameters |
 | :--- | :--- | :--- |
@@ -43,13 +47,15 @@ The MCP server exposes the following resources:
 | :--- | :--- |
 | `doctor://list` | Returns all registered doctors |
 | `doctor://{id}/slots` | Returns available slots for a specific doctor |
+| `ui://widget/medical-app.html` | Interactive widget for ChatGPT UI |
 
 ## Technical Stack
 
 - **Server:** Node.js + TypeScript (MCP SDK)
 - **Database:** Supabase (PostgreSQL)
 - **Validation:** Zod for schema validation
-- **Transport:** STDIO (local integration)
+- **Transport:** HTTP (Streamable HTTP Transport)
+- **UI:** Inline HTML widget with `text/html+skybridge` MIME type
 
 ## Setup & Execution
 
@@ -68,31 +74,65 @@ Create a `.env` file with your Supabase credentials:
 
 ```bash
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_KEY=your-anon-or-service-role-key
 ```
 
 ### 3. Database Setup
 
 1. Create a project on [Supabase](https://supabase.com)
 2. Go to the **SQL Editor**
-3. Run the SQL from `src/schema.sql`
+3. Run the SQL from `database/schema.sql`
+4. Seed data with `database/seeds/doctors.sql`
 
 ### 4. Running the Server
 
-Start the development server:
-
+**Development:**
 ```bash
 npm run dev
 ```
 
-> The server communicates via STDIO transport for local MCP client integration.
+**Production:**
+```bash
+npm run build
+npm start
+```
+
+The server listens on `http://localhost:3001/mcp` by default.
+
+## ChatGPT Integration
+
+This app integrates with ChatGPT using the OpenAI Apps SDK:
+
+### How it works
+
+1. **Tool calls** return `structuredContent` (for the model) and `_meta` (for the widget)
+2. **Widget resource** (`ui://widget/medical-app.html`) renders interactive UI
+3. **Widget reads** data from `window.openai.toolOutput` and `window.openai.toolResponseMetadata`
+4. **User interactions** trigger new tool calls via `window.openai.callTool()`
+
+### Widget Views
+
+| View | Description |
+|------|-------------|
+| `doctors-list` | Shows list of doctors with clickable cards |
+| `slots-list` | Shows available time slots for selected doctor |
+| `confirmation` | Shows booking confirmation |
+| `disambiguation` | Shows options when multiple doctors match |
 
 ## Testing Guide
 
-To validate the application functionality, use the **MCP Inspector**:
+### Using MCP Inspector
 
 ```bash
-npx @modelcontextprotocol/inspector stdio -- node dist/index.js
+npx @modelcontextprotocol/inspector node dist/index.js
+```
+
+Or test via HTTP:
+
+```bash
+# Configure in Inspector:
+# Transport Type: Streamable HTTP
+# URL: http://localhost:3001/mcp
 ```
 
 ### Recommended Test Prompts
@@ -106,27 +146,35 @@ npx @modelcontextprotocol/inspector stdio -- node dist/index.js
 
 ## Implementation Highlights
 
+**Widget Integration**
+- Tools return `_meta` outside `structuredContent` for widget-only data
+- Widget reads from `window.openai.toolResponseMetadata`
+- CSP configured for Supabase and Unsplash image domains
+
 **Ambiguity Resolution**
-When multiple doctors match a name query, the system returns all matches with their specialties, allowing the LLM to ask the user for clarification or use additional context to disambiguate.
+When multiple doctors match a name query, the system returns all matches with their specialties, allowing the LLM to ask the user for clarification.
 
 **Slot Management**
 The booking flow atomically checks availability, marks the slot as booked, and creates the appointment record - preventing double-bookings.
-
-**Type-Safe Schemas**
-All tool inputs are validated using Zod schemas defined in a centralized `schemas.ts` file, ensuring consistent validation across tools.
 
 ## Project Structure
 
 ```text
 apps/medical-appointment/
+├── database/             # SQL scripts
+│   ├── schema.sql        # Table definitions
+│   └── seeds/
+│       └── doctors.sql   # Sample data
 ├── docs/                 # Project documentation
 │   ├── 01-database-setup.md
 │   ├── 02-server-architecture.md
 │   ├── 03-mcp-tools.md
 │   └── 04-mcp-resources.md
 ├── server/
+│   ├── public/
+│   │   └── widget.html   # Interactive ChatGPT widget
 │   └── src/
-│       ├── index.ts      # Main MCP server entry point
+│       ├── index.ts      # HTTP server + MCP setup
 │       ├── config.ts     # Environment configuration
 │       ├── db/           # Data access layer (Supabase)
 │       ├── mcp/          # MCP tools, resources, schemas
@@ -140,6 +188,16 @@ apps/medical-appointment/
 - [Server Architecture](docs/02-server-architecture.md) - Code patterns and design decisions
 - [MCP Tools Reference](docs/03-mcp-tools.md) - Detailed tool documentation
 - [MCP Resources Reference](docs/04-mcp-resources.md) - Resource URI patterns
+
+## Deployment
+
+The server can be deployed to any Node.js hosting platform:
+
+- **Railway:** Auto-deploys from GitHub
+- **Vercel:** Serverless functions
+- **Fly.io:** Edge deployment
+
+Ensure `PORT` environment variable is set by your hosting provider.
 
 ## License
 

@@ -2,17 +2,59 @@
 
 This document describes the **MCP Tools** exposed by the Medical Appointment Server.
 
-Tools allow AI agents to perform actions on behalf of users.
+Tools allow ChatGPT to perform actions on behalf of users and render interactive widgets.
 
 ---
 
 ## Overview
 
-| Tool | Purpose |
-|------|---------|
-| `search_doctors` | Find doctors by name, specialty, or city |
-| `get_available_slots` | View available appointment times for a doctor |
-| `schedule_appointment` | Book an appointment with a doctor |
+| Tool | Purpose | Widget View |
+|------|---------|-------------|
+| `search_doctors` | Find doctors by name, specialty, or city | `doctors-list` |
+| `get_available_slots` | View available appointment times for a doctor | `slots-list` |
+| `schedule_appointment` | Book an appointment with a doctor | `confirmation` |
+
+---
+
+## Tool Response Structure
+
+All tools return responses with this structure:
+
+```typescript
+{
+    content: [...],           // Text for the model to narrate
+    structuredContent: {...}, // JSON visible to model + widget
+    _meta: {...},             // Widget-only data (hidden from model)
+}
+```
+
+**Important:** `_meta` must be at the **same level** as `structuredContent`, not inside it.
+
+The widget reads:
+- `structuredContent` → `window.openai.toolOutput`
+- `_meta` → `window.openai.toolResponseMetadata`
+
+---
+
+## Tool Metadata
+
+All tools include OpenAI-specific metadata:
+
+```typescript
+_meta: {
+    "openai/outputTemplate": "ui://widget/medical-app.html",
+    "openai/toolInvocation/invoking": "Searching for doctors...",
+    "openai/toolInvocation/invoked": "Found doctors",
+    "openai/widgetAccessible": true,
+}
+```
+
+| Key | Purpose |
+|-----|---------|
+| `openai/outputTemplate` | Widget resource URI to render |
+| `openai/toolInvocation/invoking` | Status text while tool runs |
+| `openai/toolInvocation/invoked` | Status text after tool completes |
+| `openai/widgetAccessible` | Allow widget to call this tool |
 
 ---
 
@@ -32,10 +74,26 @@ Tools allow AI agents to perform actions on behalf of users.
 
 ### Response Example
 
+**structuredContent** (visible to model):
 ```json
 {
   "success": true,
   "count": 2,
+  "doctors": [
+    {
+      "name": "Dr. João Silva",
+      "specialty": "Cardiologist",
+      "city": "São Paulo",
+      "state": "SP"
+    }
+  ]
+}
+```
+
+**_meta** (widget only):
+```json
+{
+  "view": "doctors-list",
   "doctors": [
     {
       "id": "uuid-here",
@@ -71,15 +129,60 @@ Tools allow AI agents to perform actions on behalf of users.
 
 ### Response Example
 
+**structuredContent** (visible to model):
 ```json
 {
   "success": true,
-  "doctor": { "id": "uuid", "name": "Dr. Silva", "specialty": "Cardiologist" },
+  "doctor": { "name": "Dr. Silva", "specialty": "Cardiologist" },
   "count": 3,
   "slots": [
-    { "id": "slot-uuid", "time": "2025-01-10T09:00:00Z" },
-    { "id": "slot-uuid", "time": "2025-01-10T10:00:00Z" }
+    { "time": "seg, 10 jan, 09:00" },
+    { "time": "seg, 10 jan, 10:00" }
   ]
+}
+```
+
+**_meta** (widget only):
+```json
+{
+  "view": "slots-list",
+  "doctor": {
+    "id": "uuid",
+    "name": "Dr. Silva",
+    "specialty": "Cardiologist",
+    "address": "Av. Paulista, 1000",
+    "imageUrl": "https://..."
+  },
+  "slots": [
+    {
+      "id": "slot-uuid",
+      "time": "2025-01-10T09:00:00Z",
+      "formattedTime": "segunda-feira, 10 de janeiro de 2025 09:00"
+    }
+  ]
+}
+```
+
+### Disambiguation Response
+
+When multiple doctors match the name:
+
+```json
+{
+  "success": false,
+  "ambiguous": true,
+  "matches": [
+    { "id": "uuid", "name": "Dr. Ana Silva", "specialty": "Dermatologist" },
+    { "id": "uuid", "name": "Dr. João Silva", "specialty": "Cardiologist" }
+  ]
+}
+```
+
+**_meta:**
+```json
+{
+  "view": "disambiguation",
+  "matches": [...]
 }
 ```
 
@@ -103,23 +206,43 @@ Tools allow AI agents to perform actions on behalf of users.
 | `patientName` | string | Yes | Patient's full name |
 | `patientPhone` | string | Yes | Patient's phone number |
 
-*At least one of `doctorId` or `doctorName` required.  
+*At least one of `doctorId` or `doctorName` required.
 **At least one of `slotId` or `slotTime` required.
 
 ### Response Example
 
+**structuredContent** (visible to model):
 ```json
 {
   "success": true,
-  "message": "Appointment scheduled successfully!",
+  "appointment": {
+    "doctorName": "Dr. João Silva",
+    "specialty": "Cardiologist",
+    "scheduledAt": "segunda-feira, 10 de janeiro de 2025 09:00",
+    "patientName": "Maria Santos"
+  }
+}
+```
+
+**_meta** (widget only):
+```json
+{
+  "view": "confirmation",
   "appointment": {
     "id": "appointment-uuid",
-    "doctor": "Dr. João Silva",
-    "specialty": "Cardiologist",
-    "address": "Av. Paulista, 1000, São Paulo - SP",
+    "doctor": {
+      "id": "uuid",
+      "name": "Dr. João Silva",
+      "specialty": "Cardiologist",
+      "address": "Av. Paulista, 1000",
+      "imageUrl": "https://..."
+    },
     "scheduledAt": "2025-01-10T09:00:00Z",
-    "patient": "Maria Santos",
-    "phone": "11999998888"
+    "formattedDate": "segunda-feira, 10 de janeiro de 2025 09:00",
+    "patient": {
+      "name": "Maria Santos",
+      "phone": "11999998888"
+    }
   }
 }
 ```
@@ -137,16 +260,4 @@ All tools return consistent error responses:
 }
 ```
 
-For ambiguous doctor matches, the response includes options:
-
-```json
-{
-  "success": false,
-  "ambiguous": true,
-  "message": "Found 2 doctors with name 'Silva'. Please specify the specialty:",
-  "matches": [
-    { "id": "uuid", "name": "Dr. Ana Silva", "specialty": "Dermatologist" },
-    { "id": "uuid", "name": "Dr. João Silva", "specialty": "Cardiologist" }
-  ]
-}
-```
+The widget does not render a special view for errors; the model narrates the error to the user.

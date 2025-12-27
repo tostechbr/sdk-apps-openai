@@ -177,12 +177,12 @@
 
     <script type="module">
         const root = document.getElementById("root");
-        // Data comes from tool response: structuredContent is in toolOutput, _meta is in toolResponseMetadata
+        // Data comes from structuredContent via toolOutput (following OpenAI SDK pattern)
         const toolOutput = window.openai?.toolOutput || {};
-        const meta = window.openai?.toolResponseMetadata || {};
-        const view = meta.view || "default";
+        const view = toolOutput.view || "default";
+        const widgetData = toolOutput.widgetData || {};
 
-        console.log("[Medical Widget] View:", view, "Meta:", meta);
+        console.log("[Medical Widget] View:", view, "Data:", widgetData);
 
         function getInitials(name) {
             return name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
@@ -272,7 +272,7 @@
         // Render based on view
         switch (view) {
             case "doctors-list":
-                root.innerHTML = renderDoctors(meta.doctors);
+                root.innerHTML = renderDoctors(widgetData.doctors);
                 root.querySelectorAll("[data-doctor-id]").forEach(el => {
                     el.addEventListener("click", () => {
                         const id = el.dataset.doctorId;
@@ -284,7 +284,7 @@
                 break;
 
             case "slots-list":
-                root.innerHTML = renderSlots(meta.doctor, meta.slots);
+                root.innerHTML = renderSlots(widgetData.doctor, widgetData.slots);
                 document.getElementById("back-btn")?.addEventListener("click", () => {
                     window.openai?.sendFollowUpMessage?.("Mostrar médicos novamente");
                 });
@@ -297,11 +297,11 @@
                 break;
 
             case "confirmation":
-                root.innerHTML = renderConfirmation(meta.appointment);
+                root.innerHTML = renderConfirmation(widgetData.appointment);
                 break;
 
             case "disambiguation":
-                root.innerHTML = '<div class="section-title">Encontramos vários médicos</div>' + renderDoctors(meta.matches);
+                root.innerHTML = '<div class="section-title">Encontramos vários médicos</div>' + renderDoctors(widgetData.matches);
                 root.querySelectorAll("[data-doctor-id]").forEach(el => {
                     el.addEventListener("click", () => {
                         const id = el.dataset.doctorId;
@@ -319,7 +319,7 @@
         // Listen for updates from ChatGPT
         window.addEventListener("openai:set_globals", (event) => {
             const globals = event.detail?.globals;
-            if (globals?.toolResponseMetadata) {
+            if (globals?.toolOutput) {
                 console.log("[Medical Widget] Reloading due to new data");
                 location.reload();
             }
