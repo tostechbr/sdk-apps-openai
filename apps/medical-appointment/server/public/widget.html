@@ -177,6 +177,92 @@
 
     <script type="module">
         const root = document.getElementById("root");
+
+        function getInitials(name) {
+            return name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+        }
+
+        function formatTime(timeStr) {
+            try {
+                const date = new Date(timeStr);
+                return date.toLocaleString("pt-BR", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+            } catch { return timeStr; }
+        }
+
+        function renderDoctors(doctors) {
+            if (!doctors?.length) {
+                return '<div class="empty">Nenhum médico encontrado.</div>';
+            }
+            return doctors.map(d => `
+        <div class="card" data-doctor-id="${d.id}">
+          <div class="card-header">
+            <div class="avatar">${getInitials(d.name)}</div>
+            <div>
+              <div class="doctor-name">${d.name}</div>
+              <div class="doctor-specialty">${d.specialty}</div>
+            </div>
+          </div>
+          <div class="doctor-location">📍 ${d.city || ""}${d.state ? ", " + d.state : ""}</div>
+        </div>
+      `).join("");
+        }
+
+        function renderSlots(doctor, slots) {
+            const header = `
+        <button class="back-btn" id="back-btn">← Voltar</button>
+        <div class="card" style="cursor: default;">
+          <div class="card-header">
+            <div class="avatar">${getInitials(doctor?.name)}</div>
+            <div>
+              <div class="doctor-name">${doctor?.name}</div>
+              <div class="doctor-specialty">${doctor?.specialty}</div>
+            </div>
+          </div>
+          ${doctor?.address ? `<div class="doctor-location">📍 ${doctor.address}</div>` : ""}
+        </div>
+        <div class="section-title">Horários Disponíveis</div>
+      `;
+
+            if (!slots?.length) {
+                return header + '<div class="empty">Sem horários disponíveis.</div>';
+            }
+
+            const slotsHtml = `
+        <div class="slots-grid">
+          ${slots.map(s => `
+            <button class="slot-btn" data-slot-id="${s.id}" data-slot-time="${s.formattedTime || formatTime(s.time)}">
+              ${s.formattedTime || formatTime(s.time)}
+            </button>
+          `).join("")}
+        </div>
+      `;
+
+            return header + slotsHtml;
+        }
+
+        function renderConfirmation(appointment) {
+            return `
+        <div class="card success-card">
+          <div class="success-icon">✓</div>
+          <div class="success-title">Consulta Agendada!</div>
+          <div style="margin-bottom: 8px;">
+            <strong>${appointment?.doctor?.name}</strong><br>
+            ${appointment?.doctor?.specialty}
+          </div>
+          <div style="color: var(--text-muted);">
+            📅 ${appointment?.formattedDate || formatTime(appointment?.scheduledAt)}<br>
+            👤 ${appointment?.patient?.name}
+          </div>
+        </div>
+      `;
+        }
+
         // Render App Function
         function renderApp(output) {
             const outputView = output?.view || "default";
