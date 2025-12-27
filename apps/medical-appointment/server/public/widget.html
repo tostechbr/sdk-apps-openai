@@ -177,8 +177,12 @@
 
     <script type="module">
         const root = document.getElementById("root");
-        const meta = window.openai?.toolResponseMetadata || {};
+        // Data comes from tool response: structuredContent is in toolOutput, _meta is in toolOutput._meta
+        const toolOutput = window.openai?.toolOutput || {};
+        const meta = toolOutput._meta || {};
         const view = meta.view || "default";
+
+        console.log("[Medical Widget] View:", view, "Meta:", meta);
 
         function getInitials(name) {
             return name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
@@ -314,7 +318,9 @@
 
         // Listen for updates from ChatGPT
         window.addEventListener("openai:set_globals", (event) => {
-            if (event.detail?.globals?.toolResponseMetadata) {
+            const globals = event.detail?.globals;
+            if (globals?.toolOutput?._meta) {
+                console.log("[Medical Widget] Reloading due to new data");
                 location.reload();
             }
         });
