@@ -6,6 +6,13 @@ import { searchDoctorsSchema, getAvailableSlotsSchema, scheduleAppointmentSchema
 
 const WIDGET_TEMPLATE = "ui://widget/medical-app.html";
 
+// Tool response metadata - tells ChatGPT which widget to render
+function toolResponseMeta() {
+    return {
+        "openai/outputTemplate": WIDGET_TEMPLATE,
+    } as const;
+}
+
 export function registerTools(server: McpServer) {
     // Tool 1: search_doctors
     server.registerTool(
@@ -64,6 +71,7 @@ export function registerTools(server: McpServer) {
                             doctors: doctorsRich,
                         },
                     },
+                    _meta: toolResponseMeta(),
                 };
             } catch (error) {
                 return {
@@ -141,6 +149,7 @@ export function registerTools(server: McpServer) {
                                     })),
                                 },
                             },
+                            _meta: toolResponseMeta(),
                         };
                     }
 
@@ -206,6 +215,7 @@ export function registerTools(server: McpServer) {
                             })),
                         },
                     },
+                    _meta: toolResponseMeta(),
                 };
             } catch (error) {
                 return {
@@ -351,6 +361,7 @@ export function registerTools(server: McpServer) {
                             },
                         },
                     },
+                    _meta: toolResponseMeta(),
                 };
             } catch (error) {
                 return {
