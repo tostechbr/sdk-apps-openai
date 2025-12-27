@@ -9,8 +9,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load widget HTML from file (clean separation of concerns)
+// In production: dist/mcp/resources.js → ../public/widget.html = dist/public/widget.html
 const WIDGET_HTML = readFileSync(
-    join(__dirname, "..", "..", "public", "widget.html"),
+    join(__dirname, "..", "public", "widget.html"),
     "utf8"
 );
 
