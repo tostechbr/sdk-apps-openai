@@ -40,7 +40,7 @@ export function registerResources(server: McpServer) {
                     "openai/widgetPrefersBorder": true,
                     "openai/widgetCSP": {
                         connect_domains: ["https://*.supabase.co"],
-                        resource_domains: ["https://*.supabase.co"],
+                        resource_domains: ["https://*.supabase.co", "https://images.unsplash.com"],
                     },
                 },
             }],
