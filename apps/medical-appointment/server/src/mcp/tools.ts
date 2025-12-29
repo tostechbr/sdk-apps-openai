@@ -60,7 +60,7 @@ export function registerTools(server: McpServer) {
                 const filterDesc = [name, specialty, city].filter(Boolean).join(", ") || "all";
 
                 return {
-                    content: [{ type: "text" as const, text: `Found ${doctors.length} doctor(s) matching: ${filterDesc}.` }],
+                    content: [],
                     structuredContent: {
                         success: true,
                         count: doctors.length,
@@ -133,7 +133,7 @@ export function registerTools(server: McpServer) {
                         }));
 
                         return {
-                            content: [{ type: "text" as const, text: `Found ${result.matches.length} doctors named "${doctorName}". Please specify which one.` }],
+                            content: [{ type: "text" as const, text: `Found ${result.matches.length} doctors named "${doctorName}". Please specify which one below.` }],
                             structuredContent: {
                                 success: false,
                                 ambiguous: true,
@@ -184,7 +184,7 @@ export function registerTools(server: McpServer) {
                 });
 
                 return {
-                    content: [{ type: "text" as const, text: `${doctor!.name} (${doctor!.specialty}) has ${slots.length} available slot(s).` }],
+                    content: [],
                     structuredContent: {
                         success: true,
                         doctor: { name: doctor!.name, specialty: doctor!.specialty },
@@ -329,7 +329,7 @@ export function registerTools(server: McpServer) {
                 });
 
                 return {
-                    content: [{ type: "text" as const, text: `Appointment confirmed with ${doctor!.name} (${doctor!.specialty}) on ${formattedDate}.` }],
+                    content: [],
                     structuredContent: {
                         success: true,
                         appointment: {
